@@ -12,4 +12,5 @@
 - `mat` fork: Created `EhEo/mat`, cloned it to `D:\GitRepos\mat`, added `upstream=https://github.com/netwaif/mat.git`, and disabled upstream push.
 - Native Windows first change: `D:\GitRepos\mat` commit `e506d03` updates UI path shortening to handle `\` separators and adds experimental PowerShell build/run documentation.
 - Native Windows verification: Downloaded official portable Go `go1.26.4.windows-amd64.zip` to `C:\tmp`, verified SHA-256, ran `gofmt`, `go test ./...`, and `go build -o mat.exe .` in `D:\GitRepos\mat`. Tests and build passed.
-- Follow-up plan: Smoke-test `mat.exe` interactively in Windows Terminal against a generated starter root, then decide whether to add CI/release automation for Windows artifacts.
+- Interactive smoke setup: Generated codex starter root at `C:\tmp\mat-smoke-starter`, added sample task `tasks/mat-smoke`, launched `D:\GitRepos\mat\mat.exe mat-smoke` in Windows Terminal with `MAT_ROOT=C:\tmp\mat-smoke-starter`, and confirmed the `mat` process stayed running.
+- Follow-up plan: User should visually confirm Windows Terminal rendering, `L` log modal, `t` task modal, refresh, and quit behavior. After that, decide whether to add CI/release automation for Windows artifacts.

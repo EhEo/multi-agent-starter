@@ -8,3 +8,4 @@
 - [x] Fork and clone `netwaif/mat` under the user GitHub account.
 - [x] Inspect `mat` for native Windows blockers.
 - [x] Record a follow-up plan for native Windows `mat.exe` support.
+- [x] Launch `mat.exe` against a generated Windows starter root for interactive smoke testing.
