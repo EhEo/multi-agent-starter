@@ -109,6 +109,17 @@ brew install netwaif/tap/mat
 MAT_ROOT=<생성된-폴더> mat
 ```
 
+Windows에서는 1차 권장 경로가 WSL이다. 생성된 폴더가 `D:\GitRepos\my-project`라면 WSL에서
+`/mnt/d/GitRepos/my-project`로 접근해 실행한다.
+
+```bash
+brew install netwaif/tap/mat
+MAT_ROOT=/mnt/d/GitRepos/my-project mat
+```
+
+native Windows 실행(`mat.exe`)은 별도 `mat` 프로젝트에서 경로 처리, 터미널 표시, UTF-8, 파일 감시를
+검증한 뒤 이 문서에 추가한다.
+
 설치·키 조작 등 자세한 내용은 [mat 저장소](https://github.com/netwaif/mat) 참고.
 
 ## 저장소 구조
