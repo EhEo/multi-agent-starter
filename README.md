@@ -122,6 +122,52 @@ native Windows 실행(`mat.exe`)은 별도 `mat` 프로젝트에서 경로 처�
 
 설치·키 조작 등 자세한 내용은 [mat 저장소](https://github.com/netwaif/mat) 참고.
 
+## Windows/Git Bash 런처 — multiagent
+
+`windows-version` 브랜치는 Windows Git Bash에서 `tmux` 좌우 pane을 열어 작업창과 `mat.exe` 모니터를
+같이 띄우는 `bin/multiagent` 런처를 제공한다. Linux용 런처와 파일명은 같지만 브랜치가 분리되어 있어
+현재는 충돌하지 않는다. 나중에 통합할 때는 한 런처 안에서 OS를 감지하거나 OS별 파일로 나누면 된다.
+
+필수 도구:
+
+- Git Bash/MSYS 환경.
+- `tmux`.
+- `python` 또는 `python3`.
+- `claude` 또는 `codex`.
+- native Windows `mat.exe`.
+
+사용 예:
+
+```bash
+export PATH="$PWD/bin:$PATH"
+cd /d/GitRepos/my-project
+multiagent          # Claude 메인 작업창 + mat.exe 모니터창
+multiagent -claude  # 위와 동일
+multiagent -codex   # Codex 메인 작업창 + mat.exe 모니터창
+```
+
+다른 폴더를 대상으로 열려면:
+
+```bash
+multiagent --target /d/GitRepos/my-project -codex
+```
+
+`mat.exe`가 PATH에 없으면 직접 지정할 수 있다.
+
+```bash
+multiagent --mat /d/GitRepos/mat/mat.exe
+```
+
+tmux를 열지 않고 시스템 파일과 `_local/bin/mat-here`만 준비하려면:
+
+```bash
+multiagent --setup-only
+```
+
+런처는 Git Bash 경로(`/d/GitRepos/my-project`)를 Windows 경로(`D:\GitRepos\my-project`)로 변환해
+생성기와 `MAT_ROOT`에 전달한다. 오른쪽 pane은 `_local/bin/mat-here`를 실행하므로 같은 설정을 나중에
+단독으로도 재사용할 수 있다.
+
 ## 저장소 구조
 
 ```

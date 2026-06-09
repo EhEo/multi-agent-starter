@@ -14,3 +14,10 @@
 - Native Windows verification: Downloaded official portable Go `go1.26.4.windows-amd64.zip` to `C:\tmp`, verified SHA-256, ran `gofmt`, `go test ./...`, and `go build -o mat.exe .` in `D:\GitRepos\mat`. Tests and build passed.
 - Interactive smoke setup: Generated codex starter root at `C:\tmp\mat-smoke-starter`, added sample task `tasks/mat-smoke`, launched `D:\GitRepos\mat\mat.exe mat-smoke` in Windows Terminal with `MAT_ROOT=C:\tmp\mat-smoke-starter`, and confirmed the `mat` process stayed running.
 - Follow-up plan: User should visually confirm Windows Terminal rendering, `L` log modal, `t` task modal, refresh, and quit behavior. After that, decide whether to add CI/release automation for Windows artifacts.
+
+## 2026-06-09
+
+- Decision: Use the same launcher name, `bin/multiagent`, on the `windows-version` branch. This does not conflict while Linux and Windows work stay on separate branches. A later merge can either keep one cross-platform launcher or split OS-specific launchers.
+- Windows launcher target: Git Bash plus tmux, with native Windows `mat.exe` in the right pane. The launcher must convert Git Bash paths such as `/d/GitRepos/app` to Windows paths such as `D:\GitRepos\app` for generator and `MAT_ROOT`.
+- Implementation: Added Windows/Git Bash `bin/multiagent`, which supports `-claude`, `-codex`, `--target`, `--setup-only`, `--no-mat`, and `--mat PATH`. It creates `_local/bin/mat-here` and passes native Windows `MAT_ROOT` to `mat.exe`.
+- Verification: `python tests\test_multiagent_windows_launcher.py`, `python tests\test_generate.py`, and `python tests\test_update_preserve.py` passed. `C:\Program Files\Git\bin\bash.exe -n bin\multiagent` passed.

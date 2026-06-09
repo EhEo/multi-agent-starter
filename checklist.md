@@ -9,3 +9,9 @@
 - [x] Inspect `mat` for native Windows blockers.
 - [x] Record a follow-up plan for native Windows `mat.exe` support.
 - [x] Launch `mat.exe` against a generated Windows starter root for interactive smoke testing.
+- [x] Create `windows-version` branch for Git Bash launcher work.
+- [x] Add Windows/Git Bash `bin/multiagent` launcher.
+- [x] Add launcher smoke tests for Windows path conversion and setup-only mode.
+- [x] Document Windows/Git Bash tmux usage in README.
+- [x] Run launcher tests and syntax checks.
+- [x] Commit and push `windows-version`.
