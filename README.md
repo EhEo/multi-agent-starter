@@ -69,6 +69,51 @@ python3 plugins/multi-agent-starter/skills/configure-multiagent/generator/init.p
 Orchestrator가 작업 폴더를 만들고 → 워커 승인을 요청한 뒤 → 진행한다.
 운영 규칙 전문은 생성된 폴더의 `CLAUDE.md`(claude) / `AGENTS.md`(codex·antigravity) 참조.
 
+## Linux/WSL 런처 — multiagent
+
+Linux/WSL에서는 `tmux` 기반 런처로 메인 코딩 창과 `mat` 리뷰/모니터 창을 한 번에 열 수 있다.
+
+```bash
+export PATH="$PWD/bin:$PATH"
+multiagent          # Claude 메인 코딩 창 + mat 창
+multiagent -claude  # 위와 동일
+multiagent -codex   # Codex 메인 코딩 창 + mat 창
+```
+
+동작:
+
+- 현재 폴더에 필요한 시스템 파일이 없으면 생성기를 자동 실행한다.
+- 이미 진행하던 폴더면 `tasks/`·`_local/`을 보존하고 시스템 파일만 갱신한다.
+- 같은 폴더의 기존 `tmux` 세션이 있으면 새로 만들지 않고 attach한다.
+- 프로젝트별 `mat` 실행 파일을 `_local/bin/mat-here`에 자동 셋업한다.
+- `jq`가 없으면 자동 설치를 시도한다. (`call_worker.sh` 디스패처 필수 의존성)
+- `mat`가 없으면 자동 설치를 시도한다. 설치만 먼저 하고 싶다면:
+
+```bash
+multiagent --install-mat
+```
+
+`mat` 설치 순서:
+
+1. `brew`가 있으면 `brew install netwaif/tap/mat`
+2. `go`가 있으면 `GOBIN=$HOME/.local/bin go install github.com/netwaif/mat@latest`
+3. 둘 다 없고 `apt`/`sudo`가 있으면 `golang-go` 설치 후 `go install`
+
+자동 설치를 원하지 않으면 `multiagent --no-install-mat`, `mat` 창 자체를 생략하려면
+`multiagent --no-mat`을 쓴다. `jq` 자동 설치까지 끄려면 `multiagent --no-install-deps`를 쓴다.
+
+`multiagent` 실행 후에는 해당 프로젝트 폴더에서 아래 명령으로 같은 `MAT_ROOT` 설정을 재사용할 수 있다.
+
+```bash
+_local/bin/mat-here
+```
+
+tmux를 열지 않고 프로젝트 파일과 `mat` 로컬 헬퍼만 준비하려면:
+
+```bash
+multiagent --setup-only
+```
+
 ## v1 → v2 마이그레이션 (기존 clone 사용자)
 
 v1은 이 repo를 clone해 루트 파일을 그대로 썼다. v2에서는 **같은 폴더에 생성기를 다시 돌려**
