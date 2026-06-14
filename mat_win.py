@@ -226,6 +226,12 @@ def _render(root: Path, pinned_task: str | None) -> None:
 
 
 def main() -> None:
+    if len(sys.argv) > 1 and sys.argv[1] in ("-h", "--help"):
+        print("usage: mat [root_dir]\n\n"
+              "  root_dir  모니터링할 폴더 (기본: MAT_ROOT 환경변수 또는 현재 폴더)\n\n"
+              "  Ctrl+C 로 종료\n")
+        return
+
     # Resolve root
     if len(sys.argv) > 1:
         root = Path(sys.argv[1]).expanduser().resolve()
