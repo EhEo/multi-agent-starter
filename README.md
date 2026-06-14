@@ -50,7 +50,41 @@ Claude Code·Codex 모두 **동일한 플러그인 흐름**이다:
 2. macOS `run.command` / Windows `run.bat` 더블클릭 (또는 폴더에서 `python3 init.py`)
 3. 메뉴에서 flavor·대상 폴더 선택
 
-### 직접(개발자) — 생성기 호출
+### CLI — `multiagent` 명령어 (pip 설치)
+
+어느 폴더에서나 `multiagent` 한 줄로 시스템을 생성한다. `pip install -e .`가 PATH 등록까지 자동으로 처리한다.
+
+```bash
+git clone https://github.com/netwaif/multi-agent-starter.git
+cd multi-agent-starter
+pip install -e .          # 일반 pip
+# uv 사용자:
+uv tool install --editable .
+```
+
+설치 후 **어느 폴더에서든**:
+
+```bash
+multiagent                                    # claude flavor, 대상 폴더 대화형 선택
+multiagent --claude                           # Claude Code를 오케스트레이터로 (기본값)
+multiagent --codex                            # Codex를 오케스트레이터로
+multiagent --antigravity                      # Antigravity (Gemini 3.1 Pro High)를 오케스트레이터로
+
+multiagent --target ~/work/my-project --yes   # 대상 폴더 지정 + 확인 생략
+multiagent --dry-run                          # 실제 쓰지 않고 미리보기
+multiagent --no-validate                      # 생성 후 validate 건너뜀
+
+multiagent mat                                # 현재 폴더 대상으로 mat 모니터를 새 터미널에 실행
+multiagent mat --target ~/work/my-project     # 특정 폴더 대상으로 mat 실행
+```
+
+`pip install -e .` / `uv tool install --editable .` 는 repo 소스를 직접 참조하므로 `git pull` 후 CLI가 자동 반영된다.
+
+> **Windows에서 PATH 등록 확인**: `pip install -e .` 완료 후 `multiagent --help`가 안 된다면,
+> `python -m site --user-scripts`로 Scripts 경로를 확인하고 시스템 환경 변수 PATH에 추가한다.
+> (예: `%APPDATA%\Python\Python3xx\Scripts`)
+
+### 직접(개발자) — 생성기 직접 호출
 
 ```bash
 python3 plugins/multi-agent-starter/skills/configure-multiagent/generator/init.py --flavor <claude|codex|antigravity> --target "<대상폴더>" --yes
@@ -106,14 +140,30 @@ v1은 이 repo를 clone해 루트 파일을 그대로 썼다. v2에서는 **같�
 
 ```bash
 brew install netwaif/tap/mat
+```
+
+### `multiagent mat` — 새 터미널에서 자동 실행 (권장)
+
+CLI를 설치했다면 `multiagent mat`가 새 터미널 창을 열고 자동으로 mat를 시작한다:
+
+```bash
+multiagent mat                             # 현재 폴더 모니터링
+multiagent mat --target ~/work/my-project  # 특정 폴더 모니터링
+```
+
+- **macOS**: Terminal.app 새 탭에서 실행
+- **Windows**: 새 cmd 창에서 실행 (MAT_ROOT 자동 설정)
+- **Linux**: gnome-terminal · konsole · xfce4-terminal · xterm 중 설치된 것으로 실행
+
+### 수동 실행
+
+```bash
 MAT_ROOT=<생성된-폴더> mat
 ```
 
-Windows에서는 1차 권장 경로가 WSL이다. 생성된 폴더가 `D:\GitRepos\my-project`라면 WSL에서
-`/mnt/d/GitRepos/my-project`로 접근해 실행한다.
+Windows(WSL)에서는 생성된 폴더가 `D:\GitRepos\my-project`라면:
 
 ```bash
-brew install netwaif/tap/mat
 MAT_ROOT=/mnt/d/GitRepos/my-project mat
 ```
 

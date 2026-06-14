@@ -1,0 +1,257 @@
+#!/usr/bin/env python3
+"""mat_win.py — Windows-native mat monitor for multi-agent-starter.
+
+Pure Python stdlib, no external dependencies.
+Polls every 2 seconds and displays task/worker status in the terminal.
+
+Usage:
+    python mat_win.py                    # MAT_ROOT env or CWD
+    python mat_win.py /path/to/root      # explicit root
+    MAT_ROOT=/path/to/root python mat_win.py
+"""
+from __future__ import annotations
+
+import os
+import re
+import sys
+import time
+from datetime import datetime
+from pathlib import Path
+
+# Enable ANSI escape codes on Windows 10+
+if sys.platform == "win32":
+    try:
+        import ctypes
+        ctypes.windll.kernel32.SetConsoleMode(
+            ctypes.windll.kernel32.GetStdHandle(-11), 7
+        )
+    except Exception:
+        pass
+
+RESET  = "\033[0m"
+BOLD   = "\033[1m"
+DIM    = "\033[2m"
+RED    = "\033[31m"
+GREEN  = "\033[32m"
+YELLOW = "\033[33m"
+CYAN   = "\033[36m"
+BRIGHT_GREEN  = "\033[92m"
+BRIGHT_YELLOW = "\033[93m"
+BRIGHT_CYAN   = "\033[96m"
+
+POLL = 2  # seconds
+
+
+def _clear():
+    os.system("cls" if sys.platform == "win32" else "clear")
+
+
+def _width() -> int:
+    try:
+        return os.get_terminal_size().columns
+    except Exception:
+        return 80
+
+
+def _parse_yaml(text: str) -> dict:
+    """Extract key: value pairs from the first ```yaml block."""
+    m = re.search(r"```yaml\s*(.*?)```", text, re.DOTALL)
+    if not m:
+        return {}
+    out: dict = {}
+    for line in m.group(1).splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or ":" not in line:
+            continue
+        key, _, val = line.partition(":")
+        out[key.strip()] = val.strip()
+    return out
+
+
+def _goal(text: str) -> str:
+    m = re.search(r"##\s+Goal\s*\n+(.*?)(?:\n#|\Z)", text, re.DOTALL)
+    if not m:
+        return ""
+    for line in m.group(1).splitlines():
+        line = line.strip()
+        if line:
+            return line[:80]
+    return ""
+
+
+def _worker_state(wdir: Path) -> str:
+    brief = wdir / "brief.md"
+    result = wdir / "result.md"
+    has_result = result.exists() and result.stat().st_size > 10
+    if not has_result:
+        for v in ("result-fix.md", "result-fix2.md"):
+            p = wdir / v
+            if p.exists() and p.stat().st_size > 10:
+                has_result = True
+                break
+    if has_result:
+        return "complete"
+    if brief.exists() and brief.stat().st_size > 0:
+        return "running"
+    return "waiting"
+
+
+_WICON = {
+    "complete": f"{BRIGHT_GREEN}[✓]{RESET}",
+    "running":  f"{BRIGHT_YELLOW}[⏳]{RESET}",
+    "waiting":  f"{DIM}[ ]{RESET}",
+}
+
+_SCOL = {
+    "done":        BRIGHT_GREEN,
+    "in_progress": BRIGHT_YELLOW,
+    "reviewing":   YELLOW,
+    "pending":     DIM,
+}
+
+_LOG_TAGS = {
+    "[ERROR]": RED, "[FAIL]": RED,
+    "[PASS]": BRIGHT_GREEN, "[DONE]": BRIGHT_GREEN,
+    "[WORKER]": BRIGHT_YELLOW, "[ACTION]": BRIGHT_YELLOW,
+    "[APPROVAL]": CYAN, "[VERIFICATION]": CYAN,
+}
+
+
+def _render(root: Path, pinned_task: str | None) -> None:
+    w = _width()
+    now = datetime.now().strftime("%H:%M:%S")
+    sep = "─" * w
+
+    tasks_dir = root / "tasks"
+    _clear()
+    print(f"{BOLD}mat-win{RESET}  {CYAN}{root.name}{RESET}  {DIM}{now}{RESET}  Ctrl+C 종료")
+    print(sep)
+
+    if not tasks_dir.is_dir():
+        print(f"\n  {DIM}tasks/ 없음 — multiagent 로 시스템을 먼저 설정하세요{RESET}")
+        return
+
+    task_dirs = sorted(
+        [d for d in tasks_dir.iterdir() if d.is_dir()],
+        key=lambda d: d.stat().st_mtime,
+        reverse=True,
+    )
+    if not task_dirs:
+        print(f"\n  {DIM}아직 작업이 없습니다{RESET}")
+        return
+
+    # Select active task
+    active: Path | None = None
+    if pinned_task:
+        cand = tasks_dir / pinned_task
+        if cand.is_dir():
+            active = cand
+    if not active:
+        for td in task_dirs:
+            p = td / "task.md"
+            if p.exists():
+                meta = _parse_yaml(p.read_text(encoding="utf-8", errors="ignore"))
+                if meta.get("status", "") in ("in_progress", "reviewing", "waiting"):
+                    active = td
+                    break
+        if not active:
+            active = task_dirs[0]
+
+    # Read task.md
+    task_md = active / "task.md"
+    text = task_md.read_text(encoding="utf-8", errors="ignore") if task_md.exists() else ""
+    meta = _parse_yaml(text)
+    status   = meta.get("status", "?")
+    updated  = meta.get("updated", "")
+    priority = meta.get("priority", "")
+    goal     = _goal(text)
+    scol     = _SCOL.get(status, "")
+
+    print(f"  작업: {BOLD}{active.name}{RESET}  상태: {scol}{status}{RESET}  "
+          f"갱신: {DIM}{updated}{RESET}  우선순위: {priority}")
+    if goal:
+        print(f"  목표: {goal}")
+    print()
+
+    # Workers
+    wdir = active / "workers"
+    if wdir.is_dir():
+        wdirs = sorted(d for d in wdir.iterdir() if d.is_dir())
+        if wdirs:
+            print(f"  {BOLD}Workers{RESET}")
+            for wd in wdirs:
+                state = _worker_state(wd)
+                icon  = _WICON.get(state, "[ ]")
+                # Brief first non-header line
+                brief_line = ""
+                bp = wd / "brief.md"
+                if bp.exists():
+                    for ln in bp.read_text(encoding="utf-8", errors="ignore").splitlines():
+                        ln = ln.strip()
+                        if ln and not ln.startswith("#"):
+                            brief_line = ln[:50]
+                            break
+                # Mtime
+                rp = wd / "result.md"
+                mtime = ""
+                ref = rp if rp.exists() else bp
+                if ref.exists():
+                    mtime = datetime.fromtimestamp(ref.stat().st_mtime).strftime("%H:%M")
+                print(f"  {icon} {CYAN}{wd.name:<16}{RESET} {state:<10} "
+                      f"{DIM}{mtime:<6}{RESET} {brief_line}")
+            print()
+
+    # Log tail
+    log_p = active / "log.md"
+    if log_p.exists():
+        lines = [l for l in log_p.read_text(encoding="utf-8", errors="ignore").splitlines() if l.strip()]
+        tail  = lines[-8:]
+        if tail:
+            print(f"  {BOLD}Log{RESET}")
+            for line in tail:
+                col = ""
+                for tag, c in _LOG_TAGS.items():
+                    if tag in line:
+                        col = c
+                        break
+                line_out = line[:w - 4]
+                print(f"  {col}{line_out}{RESET}" if col else f"  {DIM}{line_out}{RESET}")
+            print()
+
+    # Footer: task list
+    print(sep)
+    names = [d.name for d in task_dirs[:6]]
+    print(f"  {DIM}작업: {' | '.join(names)}{RESET}")
+    print(f"  {DIM}폴링 {POLL}s  Ctrl+C 종료{RESET}")
+
+
+def main() -> None:
+    # Resolve root
+    if len(sys.argv) > 1:
+        root = Path(sys.argv[1]).expanduser().resolve()
+    else:
+        env = os.environ.get("MAT_ROOT", "")
+        root = Path(env).expanduser().resolve() if env else Path.cwd()
+
+    if not root.is_dir():
+        sys.exit(f"[error] 폴더 없음: {root}")
+
+    pinned = sys.argv[2] if len(sys.argv) > 2 else None
+
+    print(f"mat-win  {root}  (Ctrl+C 종료)")
+    time.sleep(0.3)
+
+    try:
+        while True:
+            try:
+                _render(root, pinned)
+            except Exception as e:
+                _clear()
+                print(f"[error] {e}")
+            time.sleep(POLL)
+    except KeyboardInterrupt:
+        print("\nmat-win 종료.")
+
+
+if __name__ == "__main__":
+    main()
