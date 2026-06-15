@@ -13,4 +13,4 @@ multiagent = "multiagent_cli:main"
 mat = "mat_win:main"
 
 [tool.setuptools]
-py-modules = ["multiagent_cli"]
+py-modules = ["multiagent_cli", "mat_win"]
