@@ -116,16 +116,22 @@ jq --version
 현재 폴더가 자동으로 설치 대상이 된다.
 
 ```bash
-# 예: ~/projects/my-agent 폴더에 멀티에이전트 시스템 설치
+# 예: ~/projects/my-agent 폴더에 시스템 파일을 생성하고 claude 실행
 cd ~/projects/my-agent
 multiagent
 ```
 
 실행하면:
 
-1. `claude` flavor로 시스템 파일 26개를 현재 폴더에 복사
-2. `validate.py`가 자동으로 실행되어 설치 완전성 검증 (C1~C9 모두 PASS 확인)
-3. 검증 통과 후 tmux 세션을 열고 `claude` 실행 (오른쪽엔 `mat` 모니터)
+1. `claude` flavor로 시스템 파일을 현재 폴더에 복사
+2. `validate.py`가 자동으로 실행되어 설치 완전성 검증
+3. 검증 통과 후 `claude`를 **현재 터미널에서 바로** 실행 (tmux 없음)
+
+tmux 레이아웃(왼쪽: claude, 오른쪽: mat)을 원하면 `tmux` 서브커맨드를 사용한다:
+
+```bash
+multiagent tmux
+```
 
 ### Flavor 선택
 

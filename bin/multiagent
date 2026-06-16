@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# multiagent — initialize a MultiAgent workspace and open a tmux coding/review layout.
+# multiagent — initialize a MultiAgent workspace and optionally open a tmux layout.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -8,18 +8,34 @@ GENERATOR="$REPO_ROOT/plugins/multi-agent-starter/skills/configure-multiagent/ge
 
 usage() {
   cat <<'EOF'
-usage: multiagent [-claude|-codex] [--target DIR] [--setup-only] [--install-mat] [--no-mat] [--no-install-mat] [--no-install-deps]
+usage: multiagent [tmux] [-claude|-codex] [--target DIR] [options]
+
+Subcommands:
+  (없음)        시스템 파일을 초기화(또는 검증)하고 claude/codex를 직접 실행한다.
+  tmux          시스템 파일을 초기화한 뒤 tmux 레이아웃을 연다 (왼쪽: claude, 오른쪽: mat).
+
+Flavor:
+  -claude, --claude   Claude Code를 오케스트레이터로 사용한다 (기본값).
+  -codex,  --codex    Codex를 오케스트레이터로 사용한다.
 
 Options:
-  -claude           Use Claude as the main coding pane (default).
-  -codex            Use Codex as the main coding pane.
-  --target DIR      Initialize/open DIR instead of the current directory.
-  --setup-only      Initialize project files and local mat helper, then exit.
-  --install-mat     Install mat, then exit.
-  --no-mat          Do not open the mat pane.
-  --no-install-mat  Do not try to install mat automatically when missing.
-  --no-install-deps Do not try to install jq automatically when missing.
-  -h, --help        Show this help.
+  --target DIR      현재 폴더 대신 DIR에 시스템을 초기화/실행한다.
+  --setup-only      파일 초기화와 mat 헬퍼만 설치하고 종료한다.
+  --install-mat     mat 바이너리만 설치하고 종료한다.
+  --no-mat          (tmux 서브커맨드) mat 창을 열지 않는다.
+  --no-install-mat  mat 자동 설치를 시도하지 않는다.
+  --no-install-deps jq 자동 설치를 시도하지 않는다.
+  -h, --help        이 도움말을 표시한다.
+
+Examples:
+  multiagent                       # claude 시작 (tmux 없음)
+  multiagent -codex                # codex 시작 (tmux 없음)
+  multiagent tmux                  # claude + mat tmux 레이아웃
+  multiagent tmux -codex           # codex + mat tmux 레이아웃
+  multiagent tmux --no-mat         # claude tmux (mat 창 없음)
+  multiagent --target ~/my-project # 특정 폴더에서 claude 시작
+  multiagent --install-mat         # mat 바이너리 설치
+  multiagent --setup-only          # 파일만 생성, 실행 없음
 EOF
 }
 
@@ -168,6 +184,14 @@ tmux_send() {
   tmux send-keys -t "$target" "$*" C-m
 }
 
+# ── 서브커맨드 감지 ───────────────────────────────────────────────────────────
+SUBCOMMAND=""
+if [ "${1:-}" = "tmux" ]; then
+  SUBCOMMAND="tmux"
+  shift
+fi
+
+# ── 옵션 파싱 ─────────────────────────────────────────────────────────────────
 FLAVOR="claude"
 TARGET="."
 OPEN_MAT=1
@@ -221,12 +245,13 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
+# ── mat 단독 설치 ─────────────────────────────────────────────────────────────
 if [ "$INSTALL_MAT_ONLY" -eq 1 ]; then
   install_mat
   exit 0
 fi
 
-have tmux || die "tmux is required. Install tmux first."
+# ── 공통 사전 점검 ────────────────────────────────────────────────────────────
 have python3 || die "python3 is required."
 [ -f "$GENERATOR" ] || die "generator not found: $GENERATOR"
 
@@ -240,45 +265,57 @@ fi
 
 TARGET="$(abs_dir "$TARGET")"
 python3 "$GENERATOR" --flavor "$FLAVOR" --target "$TARGET" --yes
-setup_mat_for_target "$TARGET"
 
 if [ "$SETUP_ONLY" -eq 1 ]; then
+  setup_mat_for_target "$TARGET"
   say "project initialized: $TARGET"
   say "mat helper: $TARGET/_local/bin/mat-here"
   exit 0
 fi
 
-if ! have jq && [ "$AUTO_INSTALL_DEPS" -eq 1 ]; then
-  ( install_jq ) || say "jq auto-install failed; worker dispatcher calls may fail until jq is installed."
-fi
+# ── 분기: tmux 서브커맨드 ─────────────────────────────────────────────────────
+if [ "$SUBCOMMAND" = "tmux" ]; then
 
-MAT_CMD=""
-if [ "$OPEN_MAT" -eq 1 ]; then
-  if ! mat_path >/dev/null && [ "$AUTO_INSTALL_MAT" -eq 1 ]; then
-    ( install_mat ) || say "mat auto-install failed; opening an instruction pane instead."
+  have tmux || die "tmux is required for this subcommand. Install tmux first."
+
+  setup_mat_for_target "$TARGET"
+
+  if ! have jq && [ "$AUTO_INSTALL_DEPS" -eq 1 ]; then
+    ( install_jq ) || say "jq auto-install failed; worker dispatcher calls may fail."
   fi
-  if MAT_BIN="$(mat_path)"; then
+
+  MAT_CMD=""
+  if [ "$OPEN_MAT" -eq 1 ]; then
+    if ! mat_path >/dev/null && [ "$AUTO_INSTALL_MAT" -eq 1 ]; then
+      ( install_mat ) || say "mat auto-install failed."
+    fi
     MAT_CMD="sleep 2; \"$TARGET/_local/bin/mat-here\""
-  else
-    MAT_CMD="sleep 2; \"$TARGET/_local/bin/mat-here\"; exec bash"
   fi
-fi
 
-SESSION="multiagent-$(slug "$(basename "$TARGET")")"
-[ -n "$SESSION" ] || SESSION="multiagent-session"
+  SESSION="multiagent-$(slug "$(basename "$TARGET")")"
+  [ -n "$SESSION" ] || SESSION="multiagent-session"
 
-if tmux has-session -t "$SESSION" 2>/dev/null; then
-  say "attaching existing tmux session: $SESSION"
+  if tmux has-session -t "$SESSION" 2>/dev/null; then
+    say "attaching existing tmux session: $SESSION"
+    exec tmux attach-session -t "$SESSION"
+  fi
+
+  tmux new-session -d -s "$SESSION" -c "$TARGET" -n main
+  tmux_send "$SESSION:main.0" "cd \"$TARGET\" && $MAIN_CMD"
+
+  if [ "$OPEN_MAT" -eq 1 ]; then
+    tmux split-window -h -t "$SESSION:main" -c "$TARGET"
+    tmux_send "$SESSION:main.1" "$MAT_CMD"
+    tmux select-pane -t "$SESSION:main.0"
+  fi
+
   exec tmux attach-session -t "$SESSION"
+
+# ── 분기: 기본 (tmux 없음) ────────────────────────────────────────────────────
+else
+
+  say "running $MAIN_CMD in $TARGET"
+  cd "$TARGET"
+  exec "$MAIN_CMD"
+
 fi
-
-tmux new-session -d -s "$SESSION" -c "$TARGET" -n main
-tmux_send "$SESSION:main.0" "cd \"$TARGET\" && $MAIN_CMD"
-
-if [ "$OPEN_MAT" -eq 1 ]; then
-  tmux split-window -h -t "$SESSION:main" -c "$TARGET"
-  tmux_send "$SESSION:main.1" "$MAT_CMD"
-  tmux select-pane -t "$SESSION:main.0"
-fi
-
-tmux attach-session -t "$SESSION"
