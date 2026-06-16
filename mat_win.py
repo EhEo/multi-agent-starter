@@ -43,7 +43,9 @@ POLL = 2  # seconds
 
 
 def _clear():
-    os.system("cls" if sys.platform == "win32" else "clear")
+    # 커서를 좌상단으로 이동 후 화면 끝까지 지움 — cls처럼 blank 구간이 없어 깜박임 방지
+    sys.stdout.write("\033[H\033[J")
+    sys.stdout.flush()
 
 
 def _width() -> int:
@@ -122,13 +124,17 @@ def _render(root: Path, pinned_task: str | None) -> None:
     now = datetime.now().strftime("%H:%M:%S")
     sep = "─" * w
 
-    tasks_dir = root / "tasks"
-    _clear()
-    print(f"{BOLD}mat-win{RESET}  {CYAN}{root.name}{RESET}  {DIM}{now}{RESET}  Ctrl+C 종료")
-    print(sep)
+    # 모든 출력을 버퍼에 쌓아 한 번에 write → 중간 상태 노출 없이 깜박임 제거
+    buf: list[str] = []
+    p = buf.append
 
+    p(f"{BOLD}mat-win{RESET}  {CYAN}{root.name}{RESET}  {DIM}{now}{RESET}  Ctrl+C 종료")
+    p(sep)
+
+    tasks_dir = root / "tasks"
     if not tasks_dir.is_dir():
-        print(f"\n  {DIM}tasks/ 없음 — multiagent 로 시스템을 먼저 설정하세요{RESET}")
+        p(f"\n  {DIM}tasks/ 없음 — multiagent 로 시스템을 먼저 설정하세요{RESET}")
+        _flush(buf)
         return
 
     task_dirs = sorted(
@@ -137,7 +143,8 @@ def _render(root: Path, pinned_task: str | None) -> None:
         reverse=True,
     )
     if not task_dirs:
-        print(f"\n  {DIM}아직 작업이 없습니다{RESET}")
+        p(f"\n  {DIM}아직 작업이 없습니다{RESET}")
+        _flush(buf)
         return
 
     # Select active task
@@ -148,9 +155,9 @@ def _render(root: Path, pinned_task: str | None) -> None:
             active = cand
     if not active:
         for td in task_dirs:
-            p = td / "task.md"
-            if p.exists():
-                meta = _parse_yaml(p.read_text(encoding="utf-8", errors="ignore"))
+            tp = td / "task.md"
+            if tp.exists():
+                meta = _parse_yaml(tp.read_text(encoding="utf-8", errors="ignore"))
                 if meta.get("status", "") in ("in_progress", "reviewing", "waiting"):
                     active = td
                     break
@@ -167,22 +174,21 @@ def _render(root: Path, pinned_task: str | None) -> None:
     goal     = _goal(text)
     scol     = _SCOL.get(status, "")
 
-    print(f"  작업: {BOLD}{active.name}{RESET}  상태: {scol}{status}{RESET}  "
-          f"갱신: {DIM}{updated}{RESET}  우선순위: {priority}")
+    p(f"  작업: {BOLD}{active.name}{RESET}  상태: {scol}{status}{RESET}  "
+      f"갱신: {DIM}{updated}{RESET}  우선순위: {priority}")
     if goal:
-        print(f"  목표: {goal}")
-    print()
+        p(f"  목표: {goal}")
+    p("")
 
     # Workers
     wdir = active / "workers"
     if wdir.is_dir():
         wdirs = sorted(d for d in wdir.iterdir() if d.is_dir())
         if wdirs:
-            print(f"  {BOLD}Workers{RESET}")
+            p(f"  {BOLD}Workers{RESET}")
             for wd in wdirs:
                 state = _worker_state(wd)
                 icon  = _WICON.get(state, "[ ]")
-                # Brief first non-header line
                 brief_line = ""
                 bp = wd / "brief.md"
                 if bp.exists():
@@ -191,23 +197,22 @@ def _render(root: Path, pinned_task: str | None) -> None:
                         if ln and not ln.startswith("#"):
                             brief_line = ln[:50]
                             break
-                # Mtime
                 rp = wd / "result.md"
                 mtime = ""
                 ref = rp if rp.exists() else bp
                 if ref.exists():
                     mtime = datetime.fromtimestamp(ref.stat().st_mtime).strftime("%H:%M")
-                print(f"  {icon} {CYAN}{wd.name:<16}{RESET} {state:<10} "
-                      f"{DIM}{mtime:<6}{RESET} {brief_line}")
-            print()
+                p(f"  {icon} {CYAN}{wd.name:<16}{RESET} {state:<10} "
+                  f"{DIM}{mtime:<6}{RESET} {brief_line}")
+            p("")
 
     # Log tail
     log_p = active / "log.md"
     if log_p.exists():
-        lines = [l for l in log_p.read_text(encoding="utf-8", errors="ignore").splitlines() if l.strip()]
-        tail  = lines[-8:]
+        log_lines = [l for l in log_p.read_text(encoding="utf-8", errors="ignore").splitlines() if l.strip()]
+        tail = log_lines[-8:]
         if tail:
-            print(f"  {BOLD}Log{RESET}")
+            p(f"  {BOLD}Log{RESET}")
             for line in tail:
                 col = ""
                 for tag, c in _LOG_TAGS.items():
@@ -215,14 +220,23 @@ def _render(root: Path, pinned_task: str | None) -> None:
                         col = c
                         break
                 line_out = line[:w - 4]
-                print(f"  {col}{line_out}{RESET}" if col else f"  {DIM}{line_out}{RESET}")
-            print()
+                p(f"  {col}{line_out}{RESET}" if col else f"  {DIM}{line_out}{RESET}")
+            p("")
 
-    # Footer: task list
-    print(sep)
+    # Footer
+    p(sep)
     names = [d.name for d in task_dirs[:6]]
-    print(f"  {DIM}작업: {' | '.join(names)}{RESET}")
-    print(f"  {DIM}폴링 {POLL}s  Ctrl+C 종료{RESET}")
+    p(f"  {DIM}작업: {' | '.join(names)}{RESET}")
+    p(f"  {DIM}폴링 {POLL}s  Ctrl+C 종료{RESET}")
+
+    _flush(buf)
+
+
+def _flush(buf: list[str]) -> None:
+    # \033[H : 커서를 좌상단으로, \033[K : 줄 끝 잔상 제거, \033[J : 하단 잔여 줄 제거
+    frame = "\033[H" + "".join(line + "\033[K\n" for line in buf) + "\033[J"
+    sys.stdout.write(frame)
+    sys.stdout.flush()
 
 
 def main() -> None:
