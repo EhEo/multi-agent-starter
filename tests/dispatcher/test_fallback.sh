@@ -6,7 +6,7 @@ echo "S5 디스패처 폴백 (primary 실패 → fallback 성공)"
 ROOT="$(new_root <<'JSON'
 {"schema_version":"1","flavor":"claude","workers":{"t":{
   "call_type":"cli","model":"primary","approval_class":"worker","result_capture":"stdout",
-  "timeout":10,"brief_mode":"path","cli":{"command":"agy","args_template":["-p","@brief"]},
+  "timeout":10,"brief_mode":"path","cli":{"command":"agy","args_template":["--print","@brief"]},
   "fallbacks":[{"call_type":"cli","model":"fb","approval_class":"worker","result_capture":"stdout",
     "timeout":10,"brief_mode":"path","cli":{"command":"claude","args_template":["-p","@brief"]}}]}}}
 JSON
