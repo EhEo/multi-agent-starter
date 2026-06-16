@@ -6,7 +6,7 @@ echo "S6 디스패처 timeout (초과 → 124)"
 ROOT="$(new_root <<'JSON'
 {"schema_version":"1","flavor":"claude","workers":{"t":{
   "call_type":"cli","model":"m","approval_class":"worker","result_capture":"stdout",
-  "timeout":1,"brief_mode":"path","cli":{"command":"agy","args_template":["-p","@brief"]}}}}
+  "timeout":1,"brief_mode":"path","cli":{"command":"agy","args_template":["--print","@brief"]}}}}
 JSON
 )"
 echo "brief" > "$ROOT/brief.txt"

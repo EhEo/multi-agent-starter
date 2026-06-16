@@ -48,7 +48,7 @@
       "brief_mode": "content",
       "cli": {
         "command": "agy",
-        "args_template": ["-p", "@brief_content"],
+        "args_template": ["--print", "@brief_content"],
         "non_interactive": { "stdin": "/dev/null", "no_tty": true, "on_permission_prompt": "fail" }
       },
       "cwd_policy": "isolated_tmp",
