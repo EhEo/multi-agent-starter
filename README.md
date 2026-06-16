@@ -50,6 +50,18 @@ Claude Code·Codex 모두 **동일한 플러그인 흐름**이다:
 2. macOS `run.command` / Windows `run.bat` 더블클릭 (또는 폴더에서 `python3 init.py`)
 3. 메뉴에서 flavor·대상 폴더 선택
 
+### pip 설치 — `mat` Python 폴백 등록
+
+native mat 없이 Python 폴백으로 `mat` 명령을 등록하고 싶을 때 사용한다.
+
+```bash
+git clone https://github.com/netwaif/multi-agent-starter.git
+cd multi-agent-starter
+pip install -e .      # 또는: uv tool install --editable .
+```
+
+설치 후 `mat --help`로 확인. `bin/multiagent` PATH 등록도 함께 하면 완전한 Linux 셋업이 된다.
+
 ### 직접(개발자) — 생성기 호출
 
 ```bash

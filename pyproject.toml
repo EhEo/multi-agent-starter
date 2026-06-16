@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "multiagent-cli"
+version = "2.0.0"
+description = "CLI wrapper for the multi-agent-starter orchestration system generator"
+requires-python = ">=3.8"
+
+[project.scripts]
+mat = "mat_linux:main"
+
+[tool.setuptools]
+py-modules = ["mat_linux"]
