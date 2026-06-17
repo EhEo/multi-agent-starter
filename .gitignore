@@ -10,6 +10,12 @@
 *.swo
 *~
 
+# Claude Code 로컬 설정 — 머신별 경로·권한 포함, git 추적 안 함
+.claude/settings.json
+
+# oh-my-claudecode 세션 상태 — 로컬 UUID·세션 데이터, git 추적 안 함
+.omc/
+
 # Logs / temp
 *.log
 *.tmp
