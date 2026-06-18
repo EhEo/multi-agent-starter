@@ -88,3 +88,23 @@
 "pro-high 쓰지 마라"(D4/INV9) 같은 **환경 한계발 금지 규칙**은 그 환경(백엔드)이 바뀌면 근거가 사라진다. pro-high 제외 사유는 옛 antigravity-claude-proxy의 `400 INVALID_ARGUMENT`였는데, 백엔드를 `agy` CLI로 바꾸니 pro-high가 정상 작동(spike 실증). → 금지 규칙엔 **"무엇 때문에 금지인지(원인 계층)"를 함께 적어야**, 원인이 사라졌을 때 안전하게 해제할 수 있다. 또 모델 셀렉션이 도구마다 다름을 확인: agy는 모델이 **전역·계정단위**(`/model`)라 per-call 핀 불가 → worker별 다른 모델 동시 사용은 안 되고, gemini 전용 전역을 pro-high로 고정해 운용. 마이그레이션은 D4·INV9·INV10·routing·validate C6를 **한 묶음으로** 갱신해야 내부 모순(validate가 새 정본을 FAIL)이 안 생긴다.
 **근거**: agy spike S1 GREEN + 3자 검수(codex #8이 "옛 정책과 충돌" 지적 → 검증하니 정책을 갱신해야 하는 것이었음). backends.json이 gemini 호출 정본, mcp__gemini-pro__/mcp__gemini__ 브리지 폐기.
 **worker**: orchestrator(마이그레이션·라이브 편집), codex-critic+gemini=agy(검수)
+
+## [2026-06-18] [phase-a-dispatcher-port]
+**교훈**: Linux에서 Windows code path를 단위 테스트할 때 `os.name='nt'`로 patch하면 Python의 `Path()`가 `WindowsPath` instantiate를 시도하며 `NotImplementedError`가 난다. 회피하려면 테스트 전용 stub Path class(`__truediv__`, `__str__`, `mkdir` 최소 구현)를 `patch.object(module, "Path", StubPath)`로 주입. 이 패턴 없이 Linux에서 Windows 코드를 커버하려면 실기기 검증에만 의존해야 한다. 또한 `sys.platform`을 `'win32'`로 patch하면 `shutil.which`가 `_winapi.NeedCurrentDirectoryForExePath`(Linux에 없음)를 호출해 죽으므로 `which` 자체도 같이 patch해야 한다.
+**근거**: Phase A `_shared/adapters/call_worker.py` Python 이식 시 `tests/dispatcher/test_conhost_wrap.py`에서 conhost.exe wrapping 로직을 Linux에서 테스트하려다 발견. `_StubPath` 도입으로 17개 단언이 모두 Linux에서 통과.
+**worker**: Sisyphus-Junior(deep — 테스트 작성)
+
+## [2026-06-18] [phase-b-bootstrap-install-ps1]
+**교훈**: PowerShell wrapper에서 외부 프로세스(`& py $Script`) 호출 후 `exit $LASTEXITCODE`를 빠뜨리면 wrapper 자체는 항상 0으로 끝난다. 호출된 Python 스크립트가 `exit 5`(verify FAIL)나 `exit 2`(hard dep)를 내놓아도 wrapper가 이를 삼켜서 CI 자동화가 조용히 잘못된 "성공"을 받게 됨. 또한 `$ErrorActionPreference = "Stop"` 하에서 `Write-Error`는 terminating throw로 변환되어 이후 `exit <code>`가 데드코드가 됨 — POSIX sentinel(127, command not found 등)을 살리려면 `[Console]::Error.WriteLine(...)` + `exit <code>` 조합으로.
+**근거**: Phase B `bootstrap/install.ps1` 17줄 wrapper 작성 후 Phase C 사전 리뷰에서 발견. 두 버그 다 CI/자동화 흐름에서 조용한 실패를 유발하는 류.
+**worker**: Sisyphus-Junior(deep — 문서 작성 중 리뷰로 발견), orchestrator(직접 수정)
+
+## [2026-06-18] [phase-a-b-c-migration-pattern]
+**교훈**: 큰 마이그레이션(Phase A/B/C, 총 78 파일 +5700 라인)을 순차 진행하면 세션 컨텍스트가 감당 안 된다. 패턴: (1) Oracle(read-only, 고비용)에게 전체 설계 자문을 먼저 받음 → (2) 결과로 나온 doc를 기반으로 독립된 작업 단위(WAVE)로 분해 → (3) 백그라운드 deep agents에게 병렬 위임 (4-5개 동시) → (4) 다른 독립 작업이 없으면 응답을 마무리하고 시스템 리마인더 대기 → (5) 결과를 수집·검증 후 다음 WAVE로. 핵심은 **Oracle의 결과가 올 때까지 구현을 블로킹**하고, **deep agents가 다루는 파일이 겹치지 않게** 위임 범위를 설정하는 것. 이 패턴으로 Phase B(10 파일 1416 LOC + 테스트)를 약 30분에 완료.
+**근거**: Phase A/B/C 전체 진행 중 확립. 첫 Phase A WAVE 1은 4개 deep agents 병렬(subprocess timeout으로 1개 실패했지만 폴백 모델로 자동 재시도). 모든 위임 프롬프트에는 TASK/EXPECTED OUTCOME/REQUIRED TOOLS/MUST DO/MUST NOT DO/CONTEXT 6섹션을 강제.
+**worker**: orchestrator(Sisyphus — 전체 오케스트레이션)
+
+## [2026-06-18] [phase-b-bootstrap-idempotency]
+**교훈**: 부트스트랩/인스톨러는 "재실행 = 처음부터 다시 설치"가 아니라 **"재실행 = 상태 맞추기"**여야 한다. per-tool `have()` 체크로 이미 있는 도구는 skip, marker 파일(`~/.local/share/multiagent-bootstrap.done`)로 전체 완료 여부를 추적. `--force`가 아니면 마커가 있으면 검증만 돌리고 종료. 이 원칙이 없으면 사용자가 부트스트랩을 다시 돌렸을 때 기존 설치된 도구의 로컬 상태(config, plugins 등)를 덮어쓰는 사고가 난다. `init.py`의 update 모드(tasks/·_local/ 보존)와 같은 철학.
+**근거**: Phase B `bootstrap/install.py` 설계 시 Oracle이 강조. 멱등성 테스트(`tests/bootstrap/test_idempotency.py`)로 `--check-only` 두 번 실행 시 stdout byte-identical 단언.
+**worker**: Oracle(설계 자문), Sisyphus-Junior(deep — 구현)
