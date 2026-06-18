@@ -21,6 +21,10 @@
 - **132개 부트스트랩 회귀 테스트** (`tests/bootstrap/`).
   플랫폼 감지, 패키지 디스패치, PATH 등록 dedup, 멱등성(marker), CLI smoke test 커버.
   총 테스트 수: **155** (Phase A 직후 42, Phase A 이전 19).
+- **`docs/WINDOWS_VERIFICATION.md`** — Native Windows 11 기기에서 Phase A+B 검증용
+  단계별 체크리스트 (10단계 + 문제 해결 + 버그 리포트 양식).
+  `install.ps1` 실행, PATH 등록, 디스패처 smoke test, 가짜 agy stub 을 이용한
+  `conhost.exe --headless` 래핑 라이브 검증(Issue #76 회귀 확인) 포함.
 
 #### Changed
 - **CLI 도구(claude, codex via npm; agy via 공식 installer)가 부트스트랩에 의해 자동 설치.**
