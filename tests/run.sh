@@ -21,5 +21,13 @@ for t in "$HERE"/dispatcher/test_*.py; do
 done
 
 echo
+echo "== bootstrap tests =="
+for t in "$HERE"/bootstrap/test_*.py; do
+  [ -f "$t" ] || continue
+  echo "-- $(basename "$t")"
+  python3 "$t" || fail=1
+done
+
+echo
 if [ "$fail" -eq 0 ]; then echo "ALL TESTS PASS"; else echo "SOME TESTS FAILED"; fi
 exit "$fail"

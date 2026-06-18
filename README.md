@@ -37,6 +37,56 @@
 
 ## 설치 & 사용
 
+### 빠른 시작 (부트스트랩) — 신규 PC 1차 권장
+
+이 저장소를 clone한 직후 **명령 한 줄**로 모든 시스템 의존성(python3, git, tmux, jq, Node.js)과
+CLI 도구(claude, codex, agy)를 설치·PATH 등록·워크스페이스 scaffold까지 끝낸다.
+Linux(apt/dnf/pacman)·WSL·macOS(brew)·Native Windows(winget) 모두 지원.
+사용자가 직접 해야 할 일은 **각 CLI 도구의 브라우저 로그인뿐**이다.
+
+```bash
+# POSIX (Linux / macOS / WSL) — 셸 wrapper
+bash bootstrap/install.sh
+# 동등: python3 bootstrap/install.py
+
+# Windows PowerShell — 네이티브 wrapper
+powershell -ExecutionPolicy Bypass -File bootstrap\install.ps1
+# 동등: py -3 bootstrap\install.py
+```
+
+> Git for Windows가 제공하는 bash에서 `bootstrap/install.sh`도 동작하지만,
+> Native Windows에서는 `install.ps1` 경로가 1차 권장이다.
+
+**주요 옵션** (전체는 `python3 bootstrap/install.py --help`):
+
+| 옵션 | 설명 |
+|------|------|
+| `--flavor <claude\|codex\|antigravity>` | scaffold flavor (기본: claude) |
+| `--target <dir>` | scaffold 대상 폴더 (기본: 현재 디렉토리) |
+| `--check-only` | 감지 + 검증만. 설치·PATH 변경·마커 기록 안 함 |
+| `--force` | 마커 파일 무시하고 설치 재시도 (이미 설치된 도구는 여전히 스킵) |
+| `--no-install-cli` | claude/codex/agy 자동 설치 스킵 |
+| `--skip-login-guide` | 끝의 로그인 안내 생략 |
+| `--yes` | 비대화형 (모든 프롬프트에 기본 yes) |
+
+**멱등성**: 재실행 시 이미 설치된 도구는 건너뛴다. 완료 마커 파일
+(`~/.local/share/multiagent-bootstrap.done` POSIX,
+`%LOCALAPPDATA%\multiagent-bootstrap\bootstrap.done` Windows)이 있으면
+기본적으로 검증만 수행 — `--force`로 재실행.
+
+**로그인은 자동화 불가**: claude·codex·agy 모두 브라우저 OAuth를 쓰므로 부트스트랩이 대신 할 수 없다.
+실행 종료 직전 로그인 가이드를 stderr로 출력한다 (`--skip-login-guide`로 생략 가능).
+
+> Native Windows에서는 **tmux를 사용하지 않는다** (single-window 모드).
+> `mat`는 별도 터미널에서 연다. 자세한 내용은 [INSTALL.md](./INSTALL.md) §0 참조.
+
+### 기존 경로 (이미 Python 3 + git이 있는 환경 · 수동 설치)
+
+이미 로컬에 Python 3와 git이 갖춰진 환경이거나 부트스트랩 없이 수동으로 설치하려면 아래 경로를 쓴다.
+아래 네 가지는 부트스트랩이 자동화하는 단계를 수동으로 하는 방법이다.
+
+#### 플러그인 (Claude Code · Codex)
+
 Claude Code·Codex 모두 **동일한 플러그인 흐름**이다:
 
 1. 호스트에서 `/plugins` 실행
@@ -44,15 +94,16 @@ Claude Code·Codex 모두 **동일한 플러그인 흐름**이다:
 3. 목록에서 **multi-agent-starter** 를 Enter로 설치·활성화
 4. `멀티 에이전트 시스템 구성해줘` → flavor·대상 폴더를 묻고 생성
 
-### ZIP (플러그인 없이 — 최소 기술)
+### ZIP (플러그인 없이 — 최소 기술) {#zip-manual}
 
 1. [Releases](https://github.com/netwaif/multi-agent-starter/releases)에서 `multi-agent-starter-<버전>.zip` 받아 압축 해제
 2. macOS `run.command` / Windows `run.bat` 더블클릭 (또는 폴더에서 `python3 init.py`)
 3. 메뉴에서 flavor·대상 폴더 선택
 
-### pip 설치 — `mat` Python 폴백 등록
+### pip 설치 — `mat` Python 폴백 등록 {#pip-manual}
 
 native mat 없이 Python 폴백으로 `mat` 명령을 등록하고 싶을 때 사용한다.
+(부트스트랩은 이 단계를 자동으로 수행한다.)
 
 ```bash
 git clone https://github.com/netwaif/multi-agent-starter.git
@@ -62,7 +113,9 @@ pip install -e .      # 또는: uv tool install --editable .
 
 설치 후 `mat --help`로 확인. `bin/multiagent` PATH 등록도 함께 하면 완전한 Linux 셋업이 된다.
 
-### 직접(개발자) — 생성기 호출
+### 직접(개발자) — 생성기 호출 {#direct-manual}
+
+부트스트랩이나 플러그인 없이 생성기 본체를 직접 부른다. 부트스트랩 `step 10`이 하는 일과 동일.
 
 ```bash
 python3 plugins/multi-agent-starter/skills/configure-multiagent/generator/init.py --flavor <claude|codex|antigravity> --target "<대상폴더>" --yes

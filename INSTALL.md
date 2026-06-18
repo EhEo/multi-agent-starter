@@ -1,4 +1,8 @@
-# multiagent — Linux/macOS 설치 및 사용 가이드
+# multiagent — 설치 및 사용 가이드 (Linux / macOS / WSL / Native Windows)
+
+> 신규 PC에서는 **§0 부트스트랩**(`bootstrap/install.py`)이 1차 권장 경로다 — 명령 한 줄로
+> 전체 환경을 구축한다. 이 문서의 나머지(§1 이후)는 부트스트랩이 자동화하는 단계를 수동으로
+> 처리하는 고급 경로와 런타임 사용법을 다룬다.
 
 ## 개요
 
@@ -30,7 +34,10 @@
 - **결정적 생성** — 설치 시 번들된 템플릿을 그대로 복사한다. AI가 시스템 파일을 임의로 만들지 않는다.
 - **벤더 독립** — `_shared/backends.json` 하나만 수정하면 모델·연결 방식(native/MCP/CLI/API)을 바꿀 수 있다.
 
-### `multiagent` 명령 동작 흐름 (Linux/macOS)
+### `multiagent` 명령 동작 흐름
+
+POSIX(Linux/macOS/WSL)에서는 tmux 기반 2-창 레이아웃이 기본이고, Native Windows에서는
+tmux 없이 single-window로 동작한다 (§0-6 참조).
 
 ```text
 multiagent 실행
@@ -50,7 +57,127 @@ multiagent 실행
 
 ---
 
-## 1. 설치
+## 0. 부트스트랩 (권장)
+
+신규 PC에서 **명령 한 줄**로 전체 환경을 구축한다. 아래 §1의 수동 단계(python3/git/tmux/claude/codex/agy
+개별 설치 + PATH 등록 + scaffold)를 하나로 합친 크로스플랫폼 설치기다.
+
+지원 플랫폼: **Linux** (apt/dnf/pacman), **WSL**, **macOS** (brew), **Native Windows** (winget).
+Python 3.8+만 있으면 어디서든 동작한다.
+
+### 0-1. 설치하는 것
+
+부트스트랩은 13-단계 상태머신으로 동작한다 (`bootstrap/install.py` 본체):
+
+| Tier | 설치 대상 | 비고 |
+|------|-----------|------|
+| 1 | python3, git, bash(POSIX) | 하드 의존 — 실패 시 중단 |
+| 3-4 | tmux(POSIX), jq | tmux는 Windows에서 WARN(미지원), jq는 WARN |
+| 5 | Node.js + npm | claude/codex(npm) 설치 전제 |
+| 2 | claude, codex, agy | `--no-install-cli` 시 스킵 |
+| 5 | mat | `bin/multiagent --install-mat` 우선, 실패 시 `pip install -e .` 폴백 |
+| - | PATH 영속화 | POSIX rc files / Windows User PATH |
+| - | Generator(scaffold) | `--flavor`·`--target`로 워크스페이스 생성 |
+| - | 검증 (`lib/verify.py`) | PASS/FAIL 요약 |
+| - | 로그인 가이드 | claude/codex/agy 브라우저 OAuth 안내 |
+| - | 마커 파일 기록 | 멱등성 — 다음 실행은 검증만 |
+
+### 0-2. 실행 (OS별)
+
+```bash
+# POSIX (Linux / macOS / WSL) — 셸 wrapper
+bash bootstrap/install.sh
+# 또는 직접: python3 bootstrap/install.py
+
+# Windows PowerShell — 네이티브 wrapper
+powershell -ExecutionPolicy Bypass -File bootstrap\install.ps1
+# 또는 직접: py -3 bootstrap\install.py
+```
+
+> Git for Windows가 제공하는 bash에서 `bootstrap/install.sh`도 동작하지만,
+> Native Windows에서는 `install.ps1` 경로가 1차 권장이다.
+
+### 0-3. 옵션
+
+`python3 bootstrap/install.py --help`로 전체를 확인할 수 있다.
+
+| 옵션 | 설명 |
+|------|------|
+| `--flavor <claude\|codex\|antigravity>` | scaffold flavor (기본: claude) |
+| `--target <dir>` | scaffold 대상 폴더 (기본: 현재 디렉토리) |
+| `--check-only` | 감지 + 검증만. 설치·PATH 변경·generator 호출·마커 기록 안 함 |
+| `--force` | 마커 파일 무시하고 설치 재시도 (이미 설치된 도구는 여전히 스킵) |
+| `--no-install-cli` | claude/codex/agy 자동 설치 스킵 |
+| `--skip-login-guide` | 끝의 로그인 안내 생략 |
+| `--yes` | 비대화형 (모든 프롬프트에 기본 yes) |
+
+### 0-4. 멱등성과 마커
+
+재실행 시 이미 설치된 도구는 건너뛴다. 최초 성공 후 마커 파일을 기록한다:
+
+- **POSIX**: `~/.local/share/multiagent-bootstrap.done`
+- **Windows**: `%LOCALAPPDATA%\multiagent-bootstrap\bootstrap.done`
+
+마커가 있으면 기본적으로 **검증만** 수행하고 generator를 다시 부르지 않는다.
+다시 설치하려면 `--force`.
+
+### 0-5. 로그인 가이드
+
+claude·codex·agy는 모두 브라우저 OAuth를 쓰므로 자동화할 수 없다. 부트스트랩 종료 직전
+stderr로 아래 안내를 출력한다 (`--skip-login-guide`로 생략 가능):
+
+```text
+[bootstrap] login guide:
+  • claude:   run `claude` once; complete OAuth on first launch.
+  • codex:    run `codex login` (ChatGPT account) or set OPENAI_API_KEY.
+  • agy:      run `agy auth login` to connect Antigravity/Gemini.
+```
+
+flavor에 따라 관련 도구만 표시된다.
+
+### 0-6. Native Windows 특이사항
+
+- **tmux 미지원** — Windows용 tmux 바이너리가 없으므로 부트스트랩은 tmux 단계를
+  `WARN`으로 건너뛴다 (`tmux unavailable on native Windows (use WSL)`).
+  결과적으로 **single-window 모드**로 동작한다 — `multiagent` 런처가 tmux 분할 없이
+  메인 코딩 창만 띄운다.
+- **`mat`는 별도 터미널에서 실행** — tmux 오른쪽 창 대신 사용자가 두 번째 터미널을 열어
+  `MAT_ROOT=<대상-폴더> mat`로 실행한다.
+- **agy Issue #76 (non-TTY stdout drop)** — 디스패처(`call_worker.py`)가 agy 호출 시
+  `conhost.exe --headless`로 래핑해 우회한다 (Phase A). 부트스트랩 단계에서는 설치만 하고,
+  런타임 우회는 생성된 시스템의 디스패처가 담당한다.
+- **패키지 매니저** — winget을 사용한다. winget이 없으면 수동 설치 안내로 WARN만 내보내고
+  계속 진행한다 (하드 실패 아님).
+
+### 0-7. 문제 해결 (부트스트랩)
+
+| 증상 | 원인 | 해결 |
+|------|------|------|
+| `npm ERR! EACCES` (POSIX) | npm global prefix 권한 부족 | `mkdir -p ~/.npm-global && npm config set prefix ~/.npm-global` 후 재실행, 또는 `--no-install-cli`로 CLI만 수동 설치 |
+| agy installer URL unreachable | 네트워크/프록시 차단 | `curl -fsSL https://antigravity.google/cli/install.sh \| bash`를 직접 실행해 확인. 회사 프록시 환경에서는 허용 도메인 확인 필요 |
+| winget 패키지找不到 (Windows) | winget 미설치 또는 Store 비활성 | Microsoft Store에서 "App Installer" 설치 후 재실행 |
+| `python3 not found` | Python 3 미설치 | Windows: Microsoft Store에서 "Python 3.x" 설치. macOS: `brew install python`. Linux: `sudo apt install python3` |
+| generator FAIL | target 폴더 권한 또는 디스크 | `--target`을 다른 폴더로 지정하거나 권한 확인 |
+| 마커 남아 재설치 안 됨 | 이전 성공 기록 | `--force`로 무시하고 재실행 |
+| tmux WARN (Windows) | 정상 동작 | Native Windows에서는 single-window 모드가 의도된 동작 (§0-6 참조) |
+
+### 0-8. 사전 검사만 하고 싶을 때
+
+설치 없이 현재 환경이 요구사항을 만족하는지만 확인하려면 `--check-only`:
+
+```bash
+python3 bootstrap/install.py --check-only
+```
+
+PATH 변경, 마커 기록, generator 호출 없이 감지 + 검증만 수행하고 종료 코드로 결과를 반환한다.
+
+---
+
+## 1. 수동 설치 (고급)
+
+> 아래는 부트스트랩(`bootstrap/install.py`)이 자동화하는 단계를 한 단계씩 직접 처리하는 방법이다.
+> 이미 로컬에 Python 3와 git이 있거나, 특정 단계만 선택적으로 실행하려 할 때 쓴다.
+> 신규 PC 셋업이라면 **§0 부트스트랩이 1차 권장**이다.
 
 ### 요구 사항
 

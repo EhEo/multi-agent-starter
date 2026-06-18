@@ -5,35 +5,68 @@
 (정본: `generator/templates/{claude,codex}/CHANGELOG.md`)를 참조한다.
 형식은 [Keep a Changelog](https://keepachangelog.com/), 버전은 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
-## [Unreleased] - Phase A
+## [Unreleased]
 
-### Added
+### Phase B — Cross-platform Bootstrap Installer
+
+#### Added
+- **Cross-platform Python bootstrap installer** `bootstrap/install.py` + `bootstrap/lib/`
+  (`platform_info`, `packages`, `cli_tools`, `pathing`, `repo`, `verify`).
+  한 번의 실행으로 신규 PC에 시스템 의존성(python3, git, tmux, jq, Node.js)과
+  CLI 도구(claude, codex, agy)를 설치하고 PATH를 영속화한 뒤 워크스페이스를 scaffold한다.
+  Linux(apt/dnf/pacman)·WSL·macOS(brew)·Native Windows(winget) 모두 지원.
+- **`bootstrap/install.sh`** (POSIX wrapper)와 **`bootstrap/install.ps1`** (Windows wrapper).
+  각각 환경에서 Python 3를 찾아 `install.py`를 실행하는 thin wrapper. Git for Windows bash에서
+  `install.sh`도 동작하지만 Native Windows에서는 `install.ps1`이 1차 권장.
+- **132개 부트스트랩 회귀 테스트** (`tests/bootstrap/`).
+  플랫폼 감지, 패키지 디스패치, PATH 등록 dedup, 멱등성(marker), CLI smoke test 커버.
+  총 테스트 수: **155** (Phase A 직후 42, Phase A 이전 19).
+
+#### Changed
+- **CLI 도구(claude, codex via npm; agy via 공식 installer)가 부트스트랩에 의해 자동 설치.**
+  사용자가 직접 설치할 필요 없이, 부트스트랩 종료 후 브라우저 로그인만 하면 된다.
+  agy는 npm 패키지가 없으므로 공식 installer(POSIX `curl|bash`, Windows `irm|iex`)만 사용한다.
+- **README.md / INSTALL.md 갱신** — 부트스트랩을 신규 PC 셋업의 1차 권장 경로로 명시.
+  기존 수동 설치법(plugin/ZIP/pip/직접)은 "고급/수동" 경로로 재프레이밍 (내용은 보존).
+  INSTALL.md는 §0 부트스트랩을 맨 앞에 추가하고 기존 §1 이후를 수동 경로로 재정렬.
+
+#### Known Issues
+- **Native Windows에서 tmux 사용 불가** — 부트스트랩은 tmux 단계를 WARN으로 건너뛰고
+  single-window 모드로 동작. `mat`는 별도 터미널에서 실행한다.
+- **agy Issue #76 (non-TTY stdout drop)** — Phase A의 디스패처 `conhost.exe --headless`
+  래핑으로 런타임에 우회. 부트스트랩은 agy 설치만 담당한다.
+
+---
+
+### Phase A — Cross-platform Python Dispatcher
+
+#### Added
 - **Cross-platform Python dispatcher** `_shared/adapters/call_worker.py` (replaces bash `call_worker.sh`).
   Native Windows 지원을 위해 agy 워커 호출 시 자동으로 `conhost.exe --headless`로 래핑하고
   ANSI escape를 제거 (upstream [Issue #76](https://github.com/google-antigravity/antigravity-cli/issues/76) 우회).
 
-### Changed
+#### Changed
 - **gemini 워커의 agy 호출에 `--dangerously-skip-permissions` 추가.** 헤드리스/자동화 환경에서
   권한 프롬프트로 멈추는 것을 방지. claude·codex flavor의 `_shared/backends.json` 정본을
   해당 옵션을 포함하도록 갱신.
 
-### Removed
+#### Removed
 - `call_worker.sh` — bash 기반 디스패처, Python 이식본으로 대체.
 - `_run.py` — 타임아웃 헬퍼, `call_worker.py`에 통합.
 - `gemini_api.sh` — 슬롯 전용 API 폰백, 실제 동작하지 않았으므로 삭제.
 
-### Deprecated
+#### Deprecated
 - 없음.
 
-### Fixed
+#### Fixed
 - **KI-3 POSIX 디스패처 의존성 해결** — bash·jq·mktemp·timeout·`/dev/null` 등 POSIX 전용 요소가
   더 이상 디스패처에 필요하지 않음.
 
-### Security
+#### Security
 - `--dangerously-skip-permissions`는 agy 워커에만 한정된 third-party 도구 우회다.
   MultiAgent의 **승인 게이트**가 여전히 agy가 언제 호출되는지 통제한다.
 
-### Known Issues
+#### Known Issues
 - **KI-3 부분 해결** — POSIX에서는 완전 동작. native Windows 전체 지원은 Windows 11 실기기에서
   `conhost.exe --headless` 우회 경로가 실제로 동작하는지 검증이 필요.
 
