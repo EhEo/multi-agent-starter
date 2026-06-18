@@ -56,20 +56,19 @@ multiagent 실행
 
 | 도구 | 용도 | 설치 확인 |
 |------|------|-----------|
-| **Python 3.8+** | CLI 실행 | `python3 --version` |
+| **Python 3.8+** | CLI 실행 · 워커 디스패처(`call_worker.py`) | `python3 --version` |
 | **tmux** | 멀티 창 레이아웃 | `tmux -V` |
 | **git** | 이 저장소 클론 | `git --version` |
-| **jq** | 워커 디스패처 JSON 파싱 | `jq --version` |
 | **claude / codex** | 오케스트레이터 실행 | `claude --version` |
 
 ### 의존성 설치
 
 ```bash
 # Ubuntu / Debian
-sudo apt update && sudo apt install -y tmux jq python3
+sudo apt update && sudo apt install -y tmux python3
 
 # macOS
-brew install tmux jq
+brew install tmux
 ```
 
 ### pip 설치 (`mat` Python 폴백 등록)
@@ -103,7 +102,7 @@ source ~/.bashrc
 multiagent --help
 mat --help
 tmux -V
-jq --version
+python3 --version
 ```
 
 ---
@@ -341,7 +340,7 @@ mat  my-agent  14:32:01  Ctrl+C 종료
 │   ├── orchestrator-rules.md
 │   ├── learnings.md
 │   └── adapters/
-│       └── call_worker.sh ← 워커 호출 디스패처
+│       └── call_worker.py ← 워커 호출 디스패처
 │
 ├── _templates/            ← 작업 파일 템플릿
 │
@@ -392,7 +391,6 @@ multiagent     # 기존 tasks/·_local/ 보존 + 시스템 파일만 갱신
 | `mat` 명령 없음 | pip install 미실행 | `pip install -e .` 재실행 |
 | validate FAIL | 시스템 파일 손상 | `multiagent` 재실행 (재설치) |
 | `tmux` 없음 | tmux 미설치 | `sudo apt install tmux` |
-| `jq` 없음 | jq 미설치 | `sudo apt install jq` |
 | `claude` 없음 | Claude Code 미설치 | Claude Code 설치 후 재시도 |
 | mat 화면 깨짐 | 터미널 ANSI 미지원 | `TERM=xterm-256color mat` 시도 |
 | 기존 세션에 붙음 | 같은 폴더 세션 존재 | `tmux kill-session -t multiagent-<폴더명>` 후 재실행 |

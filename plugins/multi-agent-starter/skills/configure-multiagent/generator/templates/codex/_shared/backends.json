@@ -31,22 +31,14 @@
       "brief_mode": "content",
       "cli": {
         "command": "agy",
-        "args_template": ["--print", "@brief_content"],
+        "args_template": ["--print", "--dangerously-skip-permissions", "@brief_content"],
         "non_interactive": { "stdin": "/dev/null", "no_tty": true, "on_permission_prompt": "fail" }
       },
       "cwd_policy": "isolated_tmp",
       "write_policy": "none",
       "approval_class": "worker",
       "result_capture": "envelope",
-      "timeout": 300,
-      "fallbacks": [
-        {
-          "model": "gemini-3.1-pro-high", "call_type": "api", "timeout": 300,
-          "approval_class": "worker", "result_capture": "envelope",
-          "api": { "ref": "adapters/gemini_api.sh", "required_env": ["GEMINI_API_KEY"],
-                   "brief_pass": "arg1", "retry": { "max": 2, "backoff_s": 2 } }
-        }
-      ]
+      "timeout": 300
     }
   }
 }

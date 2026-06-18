@@ -11,7 +11,7 @@
 > v2부터 "clone 후 그대로 사용"이 아니라 **플러그인/생성기**로 배포한다.
 > 설치 후 자연어 한 마디 — "멀티 에이전트 시스템 구성해줘" — 면 끝.
 
-> **동작 환경**: macOS·Linux에서 개발·검증됨. Windows는 **실험적** — 설치·시스템 구성·클로드 워커·코덱스 워커는 동작하지만, 제미나이 워커는 WSL 등 POSIX 환경(bash·jq·agy)이 필요하며 **아직 검증 전**이다. 정식 Windows 지원은 후속 버전 목표. (자세히는 KNOWN_ISSUES.md KI-3)
+> **동작 환경**: macOS·Linux에서 개발·검증됨. Windows는 **실험적** — 설치·시스템 구성·클로드 워커·코덱스 워커는 동작하지만, 제미나이 워커는 Python 3 + agy가 필요하며 native Windows 경로는 **아직 검증 전**이다. 정식 Windows 지원은 후속 버전 목표. (자세히는 KNOWN_ISSUES.md KI-3)
 
 ## 무엇을 만들어 주나
 
@@ -27,7 +27,7 @@
 
 - **승인 게이트** — 모든 워커(외부 모델) 호출 전 명시 승인
 - **연결 어댑터 레이어** — `_shared/backends.json`(역할→모델→연결방식 native·mcp·cli·api 레지스트리)
-  + `_shared/adapters/call_worker.sh` 디스패처. 모델·벤더를 바꿔도 시스템 규칙은 그대로 (vendor/model-free)
+  + `_shared/adapters/call_worker.py` 디스패처. 모델·벤더를 바꿔도 시스템 규칙은 그대로 (vendor/model-free)
 - **작업 재진입 프로토콜** — 콜드세션 복귀 시 재정박 → 분기 판단 → 에러 후 진행
 - **토폴로지 4패턴** — Pipeline / Fan-out·Fan-in / Expert Pool / Producer-Reviewer
 - **불변식 자가점검** — 생성 직후 `validate.py`가 구조를 검증(PASS/FAIL)
@@ -98,7 +98,6 @@ multiagent -codex   # Codex 메인 코딩 창 + mat 창
 - 이미 진행하던 폴더면 `tasks/`·`_local/`을 보존하고 시스템 파일만 갱신한다.
 - 같은 폴더의 기존 `tmux` 세션이 있으면 새로 만들지 않고 attach한다.
 - 프로젝트별 `mat` 실행 파일을 `_local/bin/mat-here`에 자동 셋업한다.
-- `jq`가 없으면 자동 설치를 시도한다. (`call_worker.sh` 디스패처 필수 의존성)
 - `mat`가 없으면 자동 설치를 시도한다. 설치만 먼저 하고 싶다면:
 
 ```bash
@@ -112,7 +111,7 @@ multiagent --install-mat
 3. 둘 다 없고 `apt`/`sudo`가 있으면 `golang-go` 설치 후 `go install`
 
 자동 설치를 원하지 않으면 `multiagent --no-install-mat`, `mat` 창 자체를 생략하려면
-`multiagent --no-mat`을 쓴다. `jq` 자동 설치까지 끄려면 `multiagent --no-install-deps`를 쓴다.
+`multiagent --no-mat`을 쓴다.
 
 `multiagent` 실행 후에는 해당 프로젝트 폴더에서 아래 명령으로 같은 `MAT_ROOT` 설정을 재사용할 수 있다.
 
@@ -147,8 +146,7 @@ v1은 이 repo를 clone해 루트 파일을 그대로 썼다. v2에서는 **같�
 
 대부분의 실패는 **명확한 메시지와 함께 멈춘다**(조용히 깨지지 않음). 아래만 갖추면 된다.
 
-- **Python 3** — 생성기 실행에 필요(`python3`). Windows는 `python`·`py`일 수 있다. 없으면 생성 단계가 안 된다.
-- **jq** — 제미나이 워커(gemini/api 디스패처)의 JSON 파싱에 필요. 없으면 `call_worker: jq 필요`로 멈춘다. (macOS는 기본 미설치 — `brew install jq`)
+- **Python 3** — 생성기 및 디스패처(`call_worker.py`) 실행에 필요(`python3`). Windows는 `python`·`py`일 수 있다. jq/mktemp/timeout은 더 이상 필요 없음 (Python stdlib로 대체).
 - **agy (Antigravity CLI)** — 제미나이 워커 백엔드. 설치·로그인 후 PATH에 있어야 한다.
 - **codex CLI** — 코덱스 워커 백엔드. 정상 경로는 MCP 서버(`codex mcp-server`, `.mcp.json`)다.
 - **git** — 권장(필수 아님). (1) 클로드 워커의 작업 격리(worktree)에 쓰인다 — 없으면 격리 없이 동작(폴백). (2) 코덱스를 **CLI 폴백**으로 부를 때만 기본 요구된다(**정상 MCP 경로는 무관**). 우회: `MULTIAGENT_CODEX_SKIP_GIT=1`. 새 작업 폴더면 `git init` 권장.

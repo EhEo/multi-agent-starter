@@ -14,10 +14,10 @@ done
 
 echo
 echo "== dispatcher tests =="
-for t in "$HERE"/dispatcher/test_*.sh; do
+for t in "$HERE"/dispatcher/test_*.py; do
   [ -f "$t" ] || continue
   echo "-- $(basename "$t")"
-  bash "$t" || fail=1
+  python3 "$t" || fail=1
 done
 
 echo

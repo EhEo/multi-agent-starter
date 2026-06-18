@@ -104,7 +104,7 @@ def run_checks(target: Path, flavor: str) -> list[tuple[bool, str]]:
         except Exception:  # noqa: BLE001
             ws = set()
         tf = read(target, "_templates/task-folder.md") or ""
-        no_gem = all("call_worker.sh gemini" not in t for t in (routing, tf, instr_txt))
+        no_gem = all("call_worker.py gemini" not in t for t in (routing, tf, instr_txt))
         set_ok = (ws <= {"claude-main", "codex-main", "codex-critic"}) and ("claude-main" in ws)
         check(no_gem and set_ok, f"C6b 워커셋 {sorted(ws)} + gemini 워커 호출 잔재 없음")
 
@@ -122,8 +122,8 @@ def run_checks(target: Path, flavor: str) -> list[tuple[bool, str]]:
     raw = read(target, "_shared/backends.json")
     problems = _backends_problems(raw, flavor, target) if raw is not None else ["_shared/backends.json 없음"]
     check(not problems, f"C9 backends.json 스키마 (문제: {problems[0] if problems else '-'})")
-    check((target / "_shared/adapters/call_worker.sh").is_file(),
-          "C9b 디스패처 _shared/adapters/call_worker.sh 존재")
+    check((target / "_shared/adapters/call_worker.py").is_file(),
+          "C9b 디스패처 _shared/adapters/call_worker.py 존재")
 
     return results
 

@@ -20,7 +20,7 @@ Orchestrator (Antigravity session — agy/IDE, Gemini 3.1 Pro High — internal 
 
 멀티모달(이미지/스크린샷)·긴 문서는 **오케스트레이터(Gemini 3.1 Pro High)가 직접** 처리한다 — 같은 벤더의 `gemini` 워커는 두지 않는다(독립성 이득 없음).
 
-**Important**: Antigravity Orchestrator's internal reasoning is not a worker. A separate `claude-main`, `codex-main`, or `codex-critic` call is a worker/model call and must pass the approval gate for the task. 워커 호출은 `_shared/backends.json` + `bash _shared/adapters/call_worker.sh <role> <brief-file>` 디스패처를 거친다.
+**Important**: Antigravity Orchestrator's internal reasoning is not a worker. A separate `claude-main`, `codex-main`, or `codex-critic` call is a worker/model call and must pass the approval gate for the task. 워커 호출은 `_shared/backends.json` + `python3 _shared/adapters/call_worker.py <role> <brief-file>` 디스패처를 거친다.
 
 ## Task Lifecycle
 

@@ -15,7 +15,7 @@
 | INV7 | 재진입 프로토콜이 `orchestrator-rules.md`와 `AGENTS.md` 포인터에 모두 존재 |
 | INV8 | 토폴로지 4패턴(Pipeline, Fan-out/Fan-in, Expert Pool, Producer-Reviewer)이 routing에 존재 |
 | INV9 | 오케스트레이터가 agy/Gemini 3.1 Pro High (`AGENTS.md` 명시), `backends.json` workers = `claude-main`·`codex-main`·`codex-critic` (gemini 워커 없음) |
-| INV10 | `gemini` 워커 호출(`call_worker.sh gemini`)·옛 `mcp__gemini-pro__*` 브리지가 활성 지침으로 없음 |
+| INV10 | `gemini` 워커 호출(`call_worker.py gemini`)·옛 `mcp__gemini-pro__*` 브리지가 활성 지침으로 없음 |
 
 ## 자가 점검 스크립트
 
@@ -29,7 +29,7 @@ grep -l 'tasks-only' "$ROOT/AGENTS.md" "$ROOT/_shared/routing.md" \
   "$ROOT/_templates/worker-brief.md" "$ROOT/_templates/task-folder.md"
 
 echo "INV2 gemini 워커/gemini-critic 활성 참조 (출력 없어야 PASS)"
-grep -rn 'call_worker.sh gemini\|gemini-critic\|- \*\*gemini\*\*' \
+grep -rn 'call_worker.py gemini\|gemini-critic\|- \*\*gemini\*\*' \
   "$ROOT/AGENTS.md" "$ROOT/README.md" "$ROOT/_shared/routing.md" \
   "$ROOT/_shared/approval-policy.md" "$ROOT/_templates" || echo " 없음 PASS"
 
@@ -61,7 +61,7 @@ for w in claude-main codex-main codex-critic; do
 done
 
 echo "INV10 gemini 워커 호출/옛 프록시 활성 (출력 없어야 PASS; 폐기문맥 제외)"
-grep -rn 'call_worker.sh gemini\|mcp__gemini-pro__\|mcp__gemini__gemini_' \
+grep -rn 'call_worker.py gemini\|mcp__gemini-pro__\|mcp__gemini__gemini_' \
   "$ROOT/_shared/routing.md" "$ROOT/_templates/task-folder.md" "$ROOT/AGENTS.md" "$ROOT/_shared/backends.json" \
   | grep -viE '폐기|deprecat' || echo " 없음 PASS"
 ```

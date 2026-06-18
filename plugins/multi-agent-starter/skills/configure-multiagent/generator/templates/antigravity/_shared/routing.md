@@ -51,7 +51,7 @@
 
 모든 worker 호출은 `_shared/backends.json`이 정본이고, 디스패처를 거친다:
 ```
-bash _shared/adapters/call_worker.sh <role> <brief-file>   # 결과 = JSON envelope
+python3 _shared/adapters/call_worker.py <role> <brief-file>   # 결과 = JSON envelope
 ```
 Orchestrator는 envelope의 stdout을 `result.md`에 기록한다. (claude-main=`claude` CLI, codex-main/codex-critic=`codex` CLI)
 

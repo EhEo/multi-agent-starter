@@ -53,7 +53,7 @@ cd <설치한-폴더>
 agy            # 또는 Antigravity IDE에서 이 폴더 열기
 ```
 
-Antigravity가 `AGENTS.md`를 자동 로드해 규칙을 따른다. 워커(claude-main/codex-main/codex-critic)는 `_shared/adapters/call_worker.sh`로 호출된다.
+Antigravity가 `AGENTS.md`를 자동 로드해 규칙을 따른다. 워커(claude-main/codex-main/codex-critic)는 `python3 _shared/adapters/call_worker.py`로 호출된다.
 
 자연어로 새 작업 요청:
 

@@ -39,7 +39,7 @@
 ## A. 호스트별 수용 체크리스트 (순서대로)
 
 ### A0. 사전 조건 (공통)
-- [ ] `python3`, `jq` 사용 가능
+- [ ] `python3` 사용 가능 (디스패처 `call_worker.py`는 Python stdlib만 사용 — jq/mktemp/timeout 불필요)
 - [ ] 대상 호스트 설치됨 (Claude Code / Codex / Antigravity IDE+`agy`)
 - [ ] 워커 백엔드 도달 가능 (flavor별, 아래)
 
@@ -65,10 +65,10 @@
 ### A3. 스모크 (L2, 수동)
 - [ ] `<DIR>`를 해당 호스트에서 열기 → 오케스트레이터에 "이 시스템 규칙 요약해" 요청
       → **승인 게이트 / log 태그 6종 / 워커풀**을 정확히 답해야 함 (지침 파일 자동 로드 증거)
-- [ ] 디스패처 존재·실행: `bash _shared/adapters/call_worker.sh` (인자 없이 → usage 에러로 살아있음 확인)
+- [ ] 디스패처 존재·실행: `python3 _shared/adapters/call_worker.py` (인자 없이 → usage 에러로 살아있음 확인)
 
 ### A4. 워커 디스패치 (L3, 실호출 — 승인 필요, 수동)
-- [ ] 사소한 task 생성 → 워커 1개 승인 → `call_worker.sh <role> <brief>` 실행
+- [ ] 사소한 task 생성 → 워커 1개 승인 → `call_worker.py <role> <brief>` 실행
       → 결과 envelope JSON `{status, exit_code, backend, model, duration_s, stdout, stderr_sanitized, fallback_used}` 수신
 
 ### A5. 전체 라이프사이클 (L3, 수동)

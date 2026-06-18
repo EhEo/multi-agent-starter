@@ -5,6 +5,40 @@
 (정본: `generator/templates/{claude,codex}/CHANGELOG.md`)를 참조한다.
 형식은 [Keep a Changelog](https://keepachangelog.com/), 버전은 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [Unreleased] - Phase A
+
+### Added
+- **Cross-platform Python dispatcher** `_shared/adapters/call_worker.py` (replaces bash `call_worker.sh`).
+  Native Windows 지원을 위해 agy 워커 호출 시 자동으로 `conhost.exe --headless`로 래핑하고
+  ANSI escape를 제거 (upstream [Issue #76](https://github.com/google-antigravity/antigravity-cli/issues/76) 우회).
+
+### Changed
+- **gemini 워커의 agy 호출에 `--dangerously-skip-permissions` 추가.** 헤드리스/자동화 환경에서
+  권한 프롬프트로 멈추는 것을 방지. claude·codex flavor의 `_shared/backends.json` 정본을
+  해당 옵션을 포함하도록 갱신.
+
+### Removed
+- `call_worker.sh` — bash 기반 디스패처, Python 이식본으로 대체.
+- `_run.py` — 타임아웃 헬퍼, `call_worker.py`에 통합.
+- `gemini_api.sh` — 슬롯 전용 API 폰백, 실제 동작하지 않았으므로 삭제.
+
+### Deprecated
+- 없음.
+
+### Fixed
+- **KI-3 POSIX 디스패처 의존성 해결** — bash·jq·mktemp·timeout·`/dev/null` 등 POSIX 전용 요소가
+  더 이상 디스패처에 필요하지 않음.
+
+### Security
+- `--dangerously-skip-permissions`는 agy 워커에만 한정된 third-party 도구 우회다.
+  MultiAgent의 **승인 게이트**가 여전히 agy가 언제 호출되는지 통제한다.
+
+### Known Issues
+- **KI-3 부분 해결** — POSIX에서는 완전 동작. native Windows 전체 지원은 Windows 11 실기기에서
+  `conhost.exe --headless` 우회 경로가 실제로 동작하는지 검증이 필요.
+
+---
+
 ## [2.0.0] - 미배포 (PR 머지 시 태깅)
 
 **Breaking**: 배포 방식을 "clone → 루트 파일 그대로 사용"에서 **생성기 + 플러그인**으로

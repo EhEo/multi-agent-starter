@@ -67,27 +67,34 @@ mat의 핵심 화면 요소인 "워커 한 줄 목적"이 실제 Objective가 �
 
 ---
 
-## KI-3 — Windows 네이티브 미지원 (gemini/api 워커가 POSIX bash 디스패처에 의존)
+## KI-3 — Windows 네이티브 지원 (부분 해결 / 검증 진행 중)
 
-- **상태**: 열림 / **보류** (출시 후 대응. 디스패처 Python 이식은 v2.1 로드맵)
-- **심각도**: 중간 — 생성기·파일 코어·native(claude Task)·MCP(codex) 워커는 크로스플랫폼으로 동작. 차단점은 **gemini 워커(+api 폴백)** 한정.
+- **상태**: 부분적으로 해결됨 / **진행 중** (POSIX 디스패처 의존성은 해결, Windows 네이티브 경로는 실증 검증 중)
+- **심각도**: 낮음 — POSIX(macOS·Linux·WSL)에서는 Python 디스패처로 완전 동작. Windows 네이티브는 `conhost.exe --headless` 우회로 동작하나, 실제 Windows 11 기기 검증이 아직 남음.
 
 ### 증상
 
-네이티브 Windows(cmd/PowerShell)에서 gemini 워커 호출 시 디스패처가 실행되지 않는다.
+- 과거: 네이티브 Windows(cmd/PowerShell)에서 gemini 워커 호출 시 bash 디스패처가 실행되지 않음.
+- 현재: Python 디스패처 도입으로 크로스플랫폼 동작. 단 Windows에서 agy CLI 자체의 별도 이슈(Issue #76)가 새로운 제약으로 등장.
 
 ### 근본 원인
 
-- `_shared/adapters/call_worker.sh`(+ `gemini_api.sh`)가 **bash·jq·timeout·mktemp·`/dev/null`** 등 POSIX 전용 요소를 사용.
-- `_shared/backends.json`의 gemini 항목도 `stdin:"/dev/null"`, `cwd_policy:"isolated_tmp"` 등 POSIX 형태.
-- native(claude)·mcp(codex)는 디스패처를 거치지 않아 영향 없음.
+- 과거 원인(bash·jq·timeout·mktemp·`/dev/null` 등 POSIX 전용 요소)은 Python 이식으로 해결됨 (Phase A).
+- 현재 남은 제약은 agy CLI 자체의 Windows 버그: `agy --print`가 non-TTY stdout 환경에서 stdout을 silently drop함 ([Issue #76](https://github.com/google-antigravity/antigravity-cli/issues/76)).
+- native(claude)·mcp(codex)는 디스패처를 거치지 않아 영향 없음 — 과거와 동일.
+- 참고 — agy 설치 옵션: `curl|bash`(POSIX), `irm|iex`(Windows PowerShell), `install.cmd`(Windows CMD). npm·brew tap은 없음. 최신 agy는 1.0.9(2026-06-17). 네이티브 Windows 바이너리는 `%LOCALAPPDATA%\agy\bin\agy.exe`에 설치됨(과거 KI-3의 "네이티브 Windows 빌드 미확인" 텍스트 정정).
 
-### 우회 / 미확정
+### 우회
 
-- 우회: **WSL 또는 Git Bash + jq + agy**. 단 **`agy`(Antigravity CLI)의 Windows/WSL 지원 자체가 미검증** — Git Bash는 리눅스 바이너리를 못 돌리므로 더 불확실. → 우회로도 완전 보장 아님.
-- 설치 자체가 bash 인스톨러(`curl … | bash`)라 agy는 맥/리눅스 지향으로 보임(네이티브 Windows 빌드 미확인).
+- Python 디스패처가 native Windows + agy 조합을 감지하면 자동으로 `conhost.exe --headless <agy> <args>`로 래핑하고 ANSI escape를 제거. 참고: obsigravity 프로젝트의 검증된 패턴.
+- `conhost.exe`가 없는 환경에서는 exit 127 + 명확한 에러 메시지로 실패.
 
 ### 다음 (출시 후)
 
-- 실제 Windows 기기에서 풀 체인 검증: agy Windows/WSL 가용성 → jq·python3 → `call_worker.sh` 1회 실행.
-- 필요 시 디스패처를 Python(`_shared/adapters/_run.py`)으로 이식해 OS 독립화(C안). 단 이식만으로 "네이티브 Windows 완전 지원" 보장은 아님(호스트 도구·agy 의존).
+- Windows 11 실기기에서 `python3 call_worker.py gemini <brief>` 호출이 conhost 래핑 경로로 정상 동작하는지 검증.
+- Issue #76이 upstream에서 해결되면 conhost 래핑 로직을 제거 검토.
+- agy 1.0.5+의 `--model` 플래그 도입으로 backends.json `model` 필드가 실제로 전달되도록 추후 업데이트 검토.
+
+### 변경 이력
+
+- [2026-06-18] Phase A: bash 디스패처 → Python 이식 (`call_worker.sh` → `call_worker.py`, `_run.py`·`gemini_api.sh` 삭제). POSIX 디스패처 의존성 해결. agy 네이티브 Windows 빌드 존재 확인(과거 "미확인" 정정). 실제 블로커는 Issue #76로 이전. Python 디스패처에 `conhost.exe --headless` 우회 구현.

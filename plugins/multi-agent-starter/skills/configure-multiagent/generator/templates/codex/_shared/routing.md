@@ -78,7 +78,7 @@ write_scope: none | tasks-only | "src/**, tests/**"
 
 - **용도**: 이미지/스크린샷/다이어그램 분석, 50페이지 이상 문서 스캔, 제3자 시각의 검토.
 - **결과물**: 분석 텍스트, 요약, 검토 의견.
-- **호출 방식**: `_shared/backends.json`의 `gemini`가 정본 — 백엔드 = Antigravity `agy` CLI, 디스패처 `bash _shared/adapters/call_worker.sh gemini <brief-file>`(결과 JSON envelope). 기본 `gemini-3.1-pro-high`, 빠른 경로 `gemini-3-flash`/`pro-low`, 폴백 `api`. 옛 `mcp__gemini-pro__*` 프록시 브리지 폐기.
+- **호출 방식**: `_shared/backends.json`의 `gemini`가 정본 — 백엔드 = Antigravity `agy` CLI, 디스패처 `python3 _shared/adapters/call_worker.py gemini <brief-file>`(결과 JSON envelope). 기본 `gemini-3.1-pro-high`, 빠른 경로 `gemini-3-flash`/`pro-low`, 폴백 `api`. 옛 `mcp__gemini-pro__*` 프록시 브리지 폐기.
 - **쓰기 권한**: 없음. Orchestrator가 응답을 `result.md`에 기록한다.
 
 ## 모델 정책
