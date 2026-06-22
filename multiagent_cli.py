@@ -113,14 +113,29 @@ def cmd_generate(args: argparse.Namespace) -> None:
 
     cli = _CLI_CMD[flavor]
     print(f"\n  {cli} 실행 중...\n")
-    try:
-        result = subprocess.run([cli], cwd=str(target))
-        sys.exit(result.returncode)
-    except FileNotFoundError:
+    cmd = _resolve_cli(cli)
+    if cmd is None:
         sys.exit(
             f"\n[error] '{cli}' 명령을 찾을 수 없습니다.\n"
             f"  {cli} 가 설치되어 PATH에 있는지 확인하세요."
         )
+    result = subprocess.run(cmd, cwd=str(target))
+    sys.exit(result.returncode)
+
+
+def _resolve_cli(name: str) -> list[str] | None:
+    """CLI 이름을 subprocess-safe 명령 리스트로 해석한다.
+
+    Windows에서 npm이 .ps1 래퍼만 설치한 경우 CreateProcess가 찾지 못하므로
+    shutil.which()로 전체 경로를 구한 뒤 .ps1이면 powershell로 감싸서 반환.
+    """
+    import shutil
+    path = shutil.which(name)
+    if path is None:
+        return None
+    if sys.platform == "win32" and path.lower().endswith(".ps1"):
+        return ["powershell", "-NoProfile", "-NonInteractive", "-File", path]
+    return [path]
 
 
 def _has_native_mat() -> bool:
