@@ -5,21 +5,6 @@
 (정본: `generator/templates/{claude,codex}/CHANGELOG.md`)를 참조한다.
 형식은 [Keep a Changelog](https://keepachangelog.com/), 버전은 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
-## [Unreleased]
-
-### Fixed
-
-- Claude flavor의 `codex-critic` MCP 호출에 `cwd: "@target_repo"`를 추가해 Windows에서도 비평 대상 저장소의 파일을 직접 읽도록 수정.
-- Windows `target_repo`는 `D:\...` 형식의 네이티브 절대경로를 사용하도록 템플릿과 라우팅 지침을 명확화.
-- `target_repo`가 없거나 유효하지 않을 때 파일 내용을 프롬프트에 인라인으로 붙이는 우회를 금지하고, 호출을 중단해 경로를 바로잡도록 변경.
-- 생성기 검증에 `C10 codex-critic MCP cwd=@target_repo` 검사를 추가하고, 해당 값 누락 시 실패하는 회귀 테스트를 추가.
-
-### Verification
-
-- `python tests\test_generate.py` 통과.
-- `python tests\test_update_preserve.py` 통과.
-- `python tests\test_multiagent_windows_launcher.py` 통과.
-
 ## [2.0.0] - 미배포 (PR 머지 시 태깅)
 
 **Breaking**: 배포 방식을 "clone → 루트 파일 그대로 사용"에서 **생성기 + 플러그인**으로
