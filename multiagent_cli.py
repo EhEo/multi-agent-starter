@@ -24,6 +24,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import os
 import platform
 import subprocess
 import sys
@@ -154,11 +155,23 @@ def cmd_mat(args: argparse.Namespace) -> None:
 
     try:
         if system == "Windows":
-            cmd_str = _mat_command(target)
-            subprocess.Popen(
-                f'start "mat monitor" cmd /c "{cmd_str}"',
-                shell=True,
-            )
+            # CREATE_NEW_CONSOLE로 새 창을 열고 환경변수를 직접 주입 —
+            # cmd/PowerShell/Git Bash 등 부모 셸 종류와 무관하게 동작
+            env = os.environ.copy()
+            env["PYTHONIOENCODING"] = "utf-8"
+            if native:
+                env["MAT_ROOT"] = target
+                subprocess.Popen(
+                    ["mat"],
+                    env=env,
+                    creationflags=subprocess.CREATE_NEW_CONSOLE,
+                )
+            else:
+                subprocess.Popen(
+                    [sys.executable, str(_MAT_WIN), target],
+                    env=env,
+                    creationflags=subprocess.CREATE_NEW_CONSOLE,
+                )
         elif system == "Darwin":
             cmd_str = _mat_command(target)
             script = f'tell application "Terminal" to do script "{cmd_str}"'
