@@ -125,6 +125,23 @@ def run_checks(target: Path, flavor: str) -> list[tuple[bool, str]]:
     check((target / "_shared/adapters/call_worker.sh").is_file(),
           "C9b 디스패처 _shared/adapters/call_worker.sh 존재")
 
+    # C10 Claude flavor의 codex-critic은 target_repo를 실제 MCP cwd로 전달해야 한다.
+    # brief에 경로만 적고 cwd를 생략하면 Windows에서 다른 작업 디렉터리로 실행될 수 있다.
+    if flavor == "claude":
+        try:
+            critic_args = (
+                (json.loads(raw or "{}").get("workers") or {})
+                .get("codex-critic", {})
+                .get("mcp", {})
+                .get("args_template", {})
+            )
+        except Exception:  # noqa: BLE001
+            critic_args = {}
+        check(
+            isinstance(critic_args, dict) and critic_args.get("cwd") == "@target_repo",
+            "C10 codex-critic MCP cwd=@target_repo",
+        )
+
     return results
 
 

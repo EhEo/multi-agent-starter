@@ -77,7 +77,7 @@ cp "$ROOT/_templates/worker-brief.md" "$ROOT/tasks/$TASK/workers/$ROLE/brief.md"
 
 **codex-main / codex-critic 호출 시 brief 상단에 다음 필드 필수**:
 ```yaml
-target_repo: /absolute/path/to/repo    # 작업 대상 절대 경로 (없으면 N/A)
+target_repo: D:\absolute\path\to\repo  # 실행 OS의 네이티브 절대경로. Windows 예시
 write_scope: none                      # none | tasks-only | "src/**" 같은 패턴
 ```
 
@@ -102,6 +102,8 @@ wc -w "$ROOT/tasks/$TASK/workers/$ROLE/brief.md"   # 영문 단어수 ≤ 240
     - codex-main 기본: `<설치한-폴더>/tasks/<task>/` (작업 폴더 안에서 산출물 작성)
     - codex-main 외부 쓰기 4조건 충족 시: brief.md의 `target_repo` 값
     - codex-critic: brief.md의 `target_repo` 값 (비평 대상 repo 컨텍스트)
+    - Windows에서는 `D:\...` 네이티브 절대경로를 그대로 전달. `/d/...` Git Bash 경로로 변환하지 않음
+    - codex-critic 호출 인자에 `cwd`를 반드시 명시. 경로가 없거나 존재하지 않으면 호출을 중단하고 경로를 수정하며, 파일 내용을 prompt에 inline하는 방식으로 우회하지 않음
   - `sandbox`:
     - codex-main: `workspace-write` 고정 (cwd 내부만 쓰기 가능. 외부 repo 쓰기는 cwd를 `target_repo`로 변경한 경우에만 해당 패턴 내 쓰기)
     - codex-critic: `read-only` 고정

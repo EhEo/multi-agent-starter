@@ -92,9 +92,11 @@ decision tree로 "누구를" 고른 뒤, "어떻게 엮을지" 고른다. **단�
 - **선행 조건**: 리뷰 대상 산출물 경로가 존재 — 보통 claude-main `result.md`, 또는 brief에 명시된 기존 코드·문서·소스
 - **결과물**: 비평 리스트, 수정 제안
 - **호출 명령**: codex-main과 동일 (`mcp__codex__codex` MCP). 단 다음 강제:
+  - `cwd`: brief의 `target_repo` 값을 MCP 호출 인자에 명시. Windows에서는 `D:\...` 네이티브 절대경로 사용
   - `sandbox`: `read-only` 고정 (쓰기 금지)
   - brief에 "비평 모드" 명시
   - brief의 `target_repo` 명시 (비평 대상 repo 컨텍스트), `write_scope: none`
+  - `target_repo`가 없거나 실제 디렉터리가 아니면 호출을 중단. 파일 내용을 prompt에 inline하여 우회 금지
 - **비용**: 있음 → 승인 필요
 - **파일 쓰기**: ❌ 직접 X. Orchestrator 경유
 

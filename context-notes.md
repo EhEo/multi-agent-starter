@@ -22,3 +22,12 @@
 - Implementation: Added Windows/Git Bash `bin/multiagent`, which supports `-claude`, `-codex`, `--target`, `--setup-only`, `--no-mat`, and `--mat PATH`. It creates `_local/bin/mat-here` and passes native Windows `MAT_ROOT` to `mat.exe`.
 - Verification: `python tests\test_multiagent_windows_launcher.py`, `python tests\test_generate.py`, and `python tests\test_update_preserve.py` passed. `C:\Program Files\Git\bin\bash.exe -n bin\multiagent` passed.
 - Fix: Running `multiagent` through the `~/.local/bin/multiagent` symlink originally resolved the repo root as `~/.local`, so the generator path was wrong. The launcher now follows symlinks before computing `REPO_ROOT`. Verified from `/d/GitRepos/my-multi-test2` with `multiagent --setup-only --no-mat`.
+
+## 2026-06-22
+
+- Scope: Fix `codex-critic` file access on native Windows and update the installed MultiAgent files in `D:\GitRepos\mnc-app-plan`.
+- Root cause: The operating docs require `cwd=target_repo`, but the Claude flavor MCP registry only supplied prompt/sandbox/approval arguments. An orchestrator following the registry literally could launch Codex outside the target repository and then inline files as a workaround.
+- Decision: Add `cwd: "@target_repo"` to the `codex-critic` MCP argument template, require a native absolute Windows path such as `D:\GitRepos\mnc-app-plan`, and explicitly forbid inline fallback when the path is readable.
+- Verification target: Generated Claude flavor validation must fail if the critic MCP `cwd` contract is removed.
+- Verification: `python tests\test_generate.py`, `python tests\test_update_preserve.py`, and `python tests\test_multiagent_windows_launcher.py` passed. A direct JSON/document assertion also passed for the installed files in `D:\GitRepos\mnc-app-plan`.
+- Scope guard: The historical `tasks/bms-gap-review/workers/codex-critic/brief.md` remains unchanged because it is an append-only execution record. New critic calls use the corrected template and registry.

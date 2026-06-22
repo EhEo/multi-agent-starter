@@ -15,3 +15,8 @@
 - [x] Document Windows/Git Bash tmux usage in README.
 - [x] Run launcher tests and syntax checks.
 - [x] Commit and push `windows-version`.
+- [x] Require `codex-critic` MCP calls to pass `cwd` from `target_repo`.
+- [x] Add validation that rejects a missing `codex-critic` MCP `cwd`.
+- [x] Propagate the fix to the generated Claude flavor template.
+- [x] Apply the same installed-system fix to `D:\GitRepos\mnc-app-plan`.
+- [x] Run focused and regression verification, then commit logical changes.

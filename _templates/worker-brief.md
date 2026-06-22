@@ -6,7 +6,7 @@
 ## Execution Context (codex-main / codex-critic 필수)
 
 ```yaml
-target_repo: /absolute/path/to/repo    # 작업 대상 절대 경로 (없으면 N/A)
+target_repo: D:\absolute\path\to\repo  # 실행 OS의 네이티브 절대경로. Windows 예시
 write_scope: none             # none | tasks-only | "src/**, tests/**" 등 패턴
                               # 외부 repo 쓰기는 task.md workers_approved에 별도 승인 필요
 ```

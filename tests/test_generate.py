@@ -6,6 +6,7 @@
 """
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 import tempfile
@@ -38,6 +39,23 @@ def main() -> None:
             if not ok:
                 print(v.stdout)
                 fails += 1
+            if f == "claude":
+                backends = tgt / "_shared" / "backends.json"
+                data = json.loads(backends.read_text(encoding="utf-8"))
+                critic_args = data["workers"]["codex-critic"]["mcp"]["args_template"]
+                cwd_ok = critic_args.get("cwd") == "@target_repo"
+                print(f"  {'PASS' if cwd_ok else 'FAIL'} [claude] codex-critic cwd contract")
+                fails += not cwd_ok
+
+                critic_args.pop("cwd", None)
+                backends.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+                missing_cwd = run([
+                    sys.executable, str(GEN / "validate.py"),
+                    "--flavor", f, "--target", str(tgt),
+                ])
+                rejects_missing = missing_cwd.returncode != 0 and "C10 codex-critic MCP cwd=@target_repo" in missing_cwd.stdout
+                print(f"  {'PASS' if rejects_missing else 'FAIL'} [claude] missing critic cwd rejected")
+                fails += not rejects_missing
     print(f"test_generate: {'all pass' if not fails else f'{fails} fail'}")
     sys.exit(1 if fails else 0)
 

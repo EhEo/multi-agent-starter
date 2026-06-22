@@ -35,7 +35,12 @@
       "call_type": "mcp",
       "mcp": {
         "tool": "mcp__codex__codex",
-        "args_template": { "prompt": "@brief_content", "sandbox": "read-only", "approval-policy": "never" }
+        "args_template": {
+          "prompt": "@brief_content",
+          "cwd": "@target_repo",
+          "sandbox": "read-only",
+          "approval-policy": "never"
+        }
       },
       "brief_mode": "content",
       "approval_class": "worker",
