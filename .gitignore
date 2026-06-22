@@ -35,4 +35,5 @@ _local/*
 # generator/sync_claude_template.py 가 templates/claude/.gitignore 생성 시 이 블록을 제거한다.
 dist/
 __pycache__/
+*.egg-info/
 # <<< repo-infra-only <<<
