@@ -129,7 +129,7 @@ function Invoke-PreflightCheck {
         agy           = $false; agyVer       = ""
         staleScript   = $false; stalePath    = ""
         scriptsInPath = $false; scriptsDir   = ""
-        inRepo        = $false
+        inRepo        = $false; repoPath     = ""
     }
 
     # winget
@@ -206,8 +206,12 @@ function Invoke-PreflightCheck {
         $result.scriptsInPath = ($curPath -like ("*" + $sd + "*"))
     }
 
-    # Repo check
-    $result.inRepo = (Test-Path (Join-Path $PSScriptRoot "pyproject.toml"))
+    # Repo check — PS2EXE exe 실행 시 $PSScriptRoot가 빈 문자열일 수 있으므로 방어 처리
+    $_root = $PSScriptRoot
+    if (-not $_root -and $PSCommandPath) { $_root = Split-Path $PSCommandPath -Parent }
+    if (-not $_root) { $_root = (Get-Location).Path }
+    $result.inRepo = ($_root -and (Test-Path (Join-Path $_root "pyproject.toml")))
+    if ($result.inRepo) { $result.repoPath = $_root }
 
     return $result
 }
@@ -254,8 +258,11 @@ function Show-PreflightReport ([hashtable]$r) {
 
     if (-not $r.inRepo) {
         Write-Host ""
-        Write-Warn "이 스크립트가 multi-agent-starter repo 외부에서 실행되고 있습니다."
-        Write-Info "repo 루트(pyproject.toml이 있는 폴더)에서 실행해야 합니다."
+        if ($r.git) {
+            Write-Info "repo 없음 — 설치 시 자동으로 git clone합니다."
+        } else {
+            Write-Warn "repo 없음 & git 미설치 — 설치 시 수동 다운로드가 필요합니다."
+        }
     }
 }
 
@@ -351,12 +358,34 @@ function Install-Prerequisites ([hashtable]$r) {
     # ── STEP 5: multiagent-cli 설치 ─────────────────────────────
     Write-Section "STEP 5/6  multiagent-cli 설치 및 PATH 등록"
     if (-not $r.inRepo) {
-        Write-Fail "pyproject.toml을 찾을 수 없습니다."
-        Write-Info "multi-agent-starter repo 루트에서 이 스크립트를 실행하세요."
-        Write-Guide "cd <repo 경로> && .\install.ps1"
-    } elseif ($r.python) {
+        if ($r.git) {
+            Write-Warn "repo가 없습니다. git clone으로 가져옵니다."
+            $defaultPath = Join-Path $env:USERPROFILE "multi-agent-starter"
+            Write-Host ("         설치 경로 [기본: " + $defaultPath + "]: ") -NoNewline
+            $clonePath = Read-Host
+            if (-not $clonePath) { $clonePath = $defaultPath }
+            Write-Info ("git clone 중 → " + $clonePath)
+            git clone "https://github.com/EhEo/multi-agent-starter.git" "$clonePath" 2>&1 | Out-Null
+            if (Test-Path (Join-Path $clonePath "pyproject.toml")) {
+                Write-OK ("clone 완료: " + $clonePath)
+                $r.inRepo    = $true
+                $r.repoPath  = $clonePath
+            } else {
+                Write-Fail "git clone 실패 — 네트워크 또는 Git 오류를 확인하세요."
+                return
+            }
+        } else {
+            Write-Fail "repo 없음 & git 미설치 — 수동으로 repo를 내려받은 후 실행하세요."
+            Write-Guide "https://github.com/EhEo/multi-agent-starter"
+            return
+        }
+    }
+
+    if ($r.python -and $r.inRepo) {
+        Push-Location $r.repoPath
         Write-Info "pip install -e . 실행 중..."
         $out = pip install -e . --user 2>&1
+        Pop-Location
         $errs = $out | Where-Object { $_ -match "^ERROR" }
         if ($errs) {
             Write-Fail "설치 오류:"
