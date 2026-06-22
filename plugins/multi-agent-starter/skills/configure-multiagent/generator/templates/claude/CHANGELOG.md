@@ -3,6 +3,18 @@
 이 파일은 MultiAgent orchestration 시스템의 주요 변경을 기록한다.
 형식은 [Keep a Changelog](https://keepachangelog.com/), 버전은 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [Unreleased]
+
+### Fixed
+
+- `codex-critic` MCP 호출에 brief의 `target_repo`를 `cwd`로 전달하도록 수정.
+- Windows에서는 `D:\...` 네이티브 절대경로를 사용하며, 잘못된 경로를 파일 인라인 전달로 우회하지 않도록 지침을 강화.
+
+### Verification
+
+- 생성된 Claude flavor에서 `cwd=@target_repo` 계약을 확인.
+- `cwd`를 제거하면 generator validator가 실패하는 회귀 테스트 통과.
+
 ## [1.0.1] - 2026-06-01
 
 모델·추론 정책 표기 정리(문서 patch). 동작 변경 없음.
